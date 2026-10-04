@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="cream_pink_background">#FFF0F3</color>
+    <color name="primary_pink">#FF6584</color>
+    <color name="soft_rose_pink">#F48B9F</color>
+    <color name="dark_pink_text">#5C3440</color>
+    <color name="muted_pink_text">#9A6D78</color>
+    <color name="white">#FFFFFF</color>
+    <color name="pastel_peach">#FFE1D6</color>
+    <color name="pastel_lilac">#EDE1FF</color>
+    <color name="pastel_mint">#DDF5EA</color>
+    <color name="pastel_blue">#DDEEFF</color>
+</resources>
