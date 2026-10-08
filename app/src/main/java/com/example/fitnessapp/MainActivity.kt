@@ -8,6 +8,7 @@ import android.content.pm.PackageManager
 import android.location.Location
 import android.location.LocationManager
 import android.os.Bundle
+import android.app.DatePickerDialog
 import android.os.CancellationSignal
 import android.widget.ArrayAdapter
 import android.widget.Button
@@ -150,7 +151,7 @@ class MainActivity : BaseActivity() {
 
     private fun setupWorkoutList() {
         val recyclerView = findViewById<RecyclerView>(R.id.workoutRecyclerView)
-        adapter = WorkoutAdapter(workouts) { workout -> showDeleteDialog(workout) }
+        adapter = WorkoutAdapter(workouts, { workout -> showDeleteDialog(workout) }, { workout -> showWorkoutDetails(workout) })
         recyclerView.layoutManager = LinearLayoutManager(this)
         recyclerView.adapter = adapter
     }
@@ -166,6 +167,16 @@ class MainActivity : BaseActivity() {
         val setsInput = dialogView.findViewById<EditText>(R.id.setsEditText)
         val repsInput = dialogView.findViewById<EditText>(R.id.repsEditText)
         val notesInput = dialogView.findViewById<EditText>(R.id.notesEditText)
+        val dateButton = dialogView.findViewById<Button>(R.id.dateButton)
+        var selectedDate = SimpleDateFormat("yyyy-MM-dd", Locale.US).format(Date())
+        dateButton.text = "Date: $selectedDate"
+        dateButton.setOnClickListener {
+            val calendar = java.util.Calendar.getInstance()
+            DatePickerDialog(this, { _, year, month, day ->
+                selectedDate = "%04d-%02d-%02d".format(year, month + 1, day)
+                dateButton.text = "Date: $selectedDate"
+            }, calendar.get(java.util.Calendar.YEAR), calendar.get(java.util.Calendar.MONTH), calendar.get(java.util.Calendar.DAY_OF_MONTH)).show()
+        }
         val dialogLocation = dialogView.findViewById<TextView>(R.id.dialogLocationTextView)
 
         val activityTypes = listOf("Running", "Cycling", "Weightlifting", "Yoga")
@@ -190,12 +201,13 @@ class MainActivity : BaseActivity() {
         dialog.setOnShowListener {
             dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener {
                 val duration = durationInput.text.toString().toIntOrNull()
-                val calories = caloriesInput.text.toString().toIntOrNull()
-                if (duration == null || duration <= 0 || calories == null || calories <= 0) {
-                    Toast.makeText(this, "Enter a valid duration and calories", Toast.LENGTH_SHORT).show()
+                val enteredCalories = caloriesInput.text.toString().toIntOrNull()
+                if (duration == null || duration <= 0) {
+                    Toast.makeText(this, "Enter a valid duration", Toast.LENGTH_SHORT).show()
                     return@setOnClickListener
                 }
                 val type = activitySpinner.selectedItem.toString()
+                val calories = enteredCalories ?: (duration * when (type) { "Running", "Walking" -> 9; "Cycling" -> 8; "Weightlifting" -> 6; else -> 4 })
                 val distance = distanceInput.text.toString().toDoubleOrNull()
                 val weight = weightInput.text.toString().toDoubleOrNull()
                 val sets = setsInput.text.toString().toIntOrNull()
@@ -213,7 +225,7 @@ class MainActivity : BaseActivity() {
                     type = type,
                     duration = duration,
                     calories = calories,
-                    date = SimpleDateFormat("yyyy-MM-dd", Locale.US).format(Date()),
+                    date = selectedDate,
                     latitude = currentLatitude,
                     longitude = currentLongitude
                     , distanceKm = distance
@@ -254,6 +266,16 @@ class MainActivity : BaseActivity() {
                     }
                 }
             }
+            .show()
+    }
+
+    private fun showWorkoutDetails(workout: Workout) {
+        val speed = if ((workout.durationMinutes) > 0) (workout.distanceKm ?: 0.0) / (workout.durationMinutes / 60.0) else 0.0
+        val volume = (workout.weightKg ?: 0.0) * (workout.sets ?: 0) * (workout.reps ?: 0)
+        AlertDialog.Builder(this)
+            .setTitle("${workout.activityName} details")
+            .setMessage("Date: ${workout.date}\nDuration: ${workout.durationMinutes} min\nDistance: ${"%.2f".format(workout.distanceKm ?: 0.0)} km\nAverage speed: ${"%.2f".format(speed)} km/h\nCalories: ${workout.calories} kcal\nLifting volume: ${"%.1f".format(volume)} kg\nNotes: ${workout.notes ?: "None"}")
+            .setPositiveButton("Close", null)
             .show()
     }
 

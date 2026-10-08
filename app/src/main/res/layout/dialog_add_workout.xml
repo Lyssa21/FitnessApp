@@ -18,6 +18,14 @@
         android:layout_height="48dp"
         android:layout_marginTop="6dp" />
 
+    <com.google.android.material.button.MaterialButton
+        android:id="@+id/dateButton"
+        style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:text="Choose workout date" />
+
     <EditText
         android:id="@+id/durationEditText"
         android:layout_width="match_parent"

@@ -11,7 +11,8 @@ import com.example.fitnessapp.model.Workout
 
 class WorkoutAdapter(
     private val workouts: MutableList<Workout>,
-    private val onLongClick: (Workout) -> Unit
+    private val onLongClick: (Workout) -> Unit,
+    private val onClick: (Workout) -> Unit = {}
 ) : RecyclerView.Adapter<WorkoutAdapter.WorkoutViewHolder>() {
 
     class WorkoutViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
@@ -48,6 +49,7 @@ class WorkoutAdapter(
             else -> R.color.pastel_blue
         }
         holder.card.setCardBackgroundColor(ContextCompat.getColor(holder.itemView.context, colour))
+        holder.itemView.setOnClickListener { onClick(workout) }
         holder.itemView.setOnLongClickListener {
             onLongClick(workout)
             true
