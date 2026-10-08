@@ -34,20 +34,24 @@
         android:hint="Duration in minutes"
         android:inputType="number" />
 
-    <EditText
-        android:id="@+id/caloriesEditText"
+    <TextView
+        android:id="@+id/calorieEstimateTextView"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="8dp"
-        android:hint="Calories burned"
-        android:inputType="number" />
+        android:layout_marginTop="12dp"
+        android:padding="12dp"
+        android:background="@drawable/bg_summary_card"
+        android:text="Estimated calories: enter workout details"
+        android:textColor="@color/primary_pink"
+        android:textSize="16sp"
+        android:textStyle="bold" />
 
     <EditText
         android:id="@+id/distanceEditText"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginTop="8dp"
-        android:hint="Distance in kilometres (running/cycling)"
+        android:hint="Distance in kilometres (cardio)"
         android:inputType="numberDecimal" />
 
     <EditText

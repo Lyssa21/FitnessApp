@@ -35,6 +35,7 @@ import com.google.android.material.floatingactionbutton.FloatingActionButton
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
+import kotlin.math.roundToInt
 
 class MainActivity : BaseActivity() {
     private lateinit var repository: WorkoutRepository
@@ -211,6 +212,33 @@ class MainActivity : BaseActivity() {
         }
     }
 
+    /** Simple, clearly-labelled estimates; cardio uses distance while timed workouts use duration. */
+    private fun estimateWorkoutCalories(type: String, durationMinutes: Int, distanceKm: Double?): Int = when (type) {
+        "Running" -> ((distanceKm ?: 0.0) * 60.0).roundToInt().coerceAtLeast(if ((distanceKm ?: 0.0) > 0) 1 else 0)
+        "Walking" -> ((distanceKm ?: 0.0) * 45.0).roundToInt().coerceAtLeast(if ((distanceKm ?: 0.0) > 0) 1 else 0)
+        "Cycling" -> ((distanceKm ?: 0.0) * 30.0).roundToInt().coerceAtLeast(if ((distanceKm ?: 0.0) > 0) 1 else 0)
+        "Weightlifting" -> (durationMinutes * 6.0).roundToInt()
+        "Yoga" -> (durationMinutes * 3.0).roundToInt()
+        else -> 0
+    }
+
+    private fun updateCalorieEstimate(
+        type: String,
+        durationInput: EditText,
+        distanceInput: EditText,
+        estimateView: TextView
+    ) {
+        val duration = durationInput.text.toString().toIntOrNull() ?: 0
+        val distance = distanceInput.text.toString().toDoubleOrNull()
+        val cardio = type in listOf("Running", "Walking", "Cycling")
+        val estimatedCalories = estimateWorkoutCalories(type, duration, distance)
+        estimateView.text = when {
+            cardio && (distance == null || distance <= 0.0) -> "Estimated calories: enter distance to calculate"
+            !cardio && duration <= 0 -> "Estimated calories: enter duration to calculate"
+            else -> "Estimated calories: about $estimatedCalories kcal"
+        }
+    }
+
     private fun setupWorkoutList() {
         val recyclerView = findViewById<RecyclerView>(R.id.workoutRecyclerView)
         adapter = WorkoutAdapter(workouts, { workout -> showDeleteDialog(workout) }, { workout -> showWorkoutDetails(workout) })
@@ -222,7 +250,7 @@ class MainActivity : BaseActivity() {
         val dialogView = layoutInflater.inflate(R.layout.dialog_add_workout, null)
         val activitySpinner = dialogView.findViewById<Spinner>(R.id.activitySpinner)
         val durationInput = dialogView.findViewById<EditText>(R.id.durationEditText)
-        val caloriesInput = dialogView.findViewById<EditText>(R.id.caloriesEditText)
+        val calorieEstimateView = dialogView.findViewById<TextView>(R.id.calorieEstimateTextView)
         val distanceInput = dialogView.findViewById<EditText>(R.id.distanceEditText)
         val exerciseInput = dialogView.findViewById<EditText>(R.id.exerciseNameEditText)
         val weightInput = dialogView.findViewById<EditText>(R.id.weightEditText)
@@ -233,10 +261,19 @@ class MainActivity : BaseActivity() {
         val cardioFields = listOf(distanceInput)
         val strengthFields = listOf(exerciseInput, weightInput, setsInput, repsInput)
         fun updateActivityFields(type: String) {
-            cardioFields.forEach { it.visibility = if (type == "Running" || type == "Cycling") View.VISIBLE else View.GONE }
+            cardioFields.forEach { it.visibility = if (type in listOf("Running", "Walking", "Cycling")) View.VISIBLE else View.GONE }
             strengthFields.forEach { it.visibility = if (type == "Weightlifting") View.VISIBLE else View.GONE }
-            caloriesInput.visibility = View.GONE // Calories are estimated automatically from activity and duration.
+            updateCalorieEstimate(type, durationInput, distanceInput, calorieEstimateView)
         }
+        val estimateWatcher = object : android.text.TextWatcher {
+            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) = Unit
+            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {
+                updateCalorieEstimate(activitySpinner.selectedItem?.toString() ?: "Running", durationInput, distanceInput, calorieEstimateView)
+            }
+            override fun afterTextChanged(s: android.text.Editable?) = Unit
+        }
+        durationInput.addTextChangedListener(estimateWatcher)
+        distanceInput.addTextChangedListener(estimateWatcher)
         activitySpinner.onItemSelectedListener = object : android.widget.AdapterView.OnItemSelectedListener {
             override fun onItemSelected(parent: android.widget.AdapterView<*>?, view: View?, position: Int, id: Long) {
                 updateActivityFields(activitySpinner.getItemAtPosition(position).toString())
@@ -254,7 +291,7 @@ class MainActivity : BaseActivity() {
         }
         val dialogLocation = dialogView.findViewById<TextView>(R.id.dialogLocationTextView)
 
-        val activityTypes = listOf("Running", "Cycling", "Weightlifting", "Yoga")
+        val activityTypes = listOf("Running", "Walking", "Cycling", "Weightlifting", "Yoga")
         activitySpinner.adapter = ArrayAdapter(
             this,
             android.R.layout.simple_spinner_dropdown_item,
@@ -264,7 +301,6 @@ class MainActivity : BaseActivity() {
             val index = activityTypes.indexOf(existing.activityName)
             if (index >= 0) activitySpinner.setSelection(index)
             durationInput.setText(existing.durationMinutes.toString())
-            caloriesInput.setText(existing.calories.toString())
             distanceInput.setText(existing.distanceKm?.toString().orEmpty())
             exerciseInput.setText(existing.exerciseName.orEmpty())
             weightInput.setText(existing.weightKg?.toString().orEmpty())
@@ -291,23 +327,26 @@ class MainActivity : BaseActivity() {
         dialog.setOnShowListener {
             dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener {
                 val duration = durationInput.text.toString().toIntOrNull()
-                val enteredCalories = caloriesInput.text.toString().toIntOrNull()
                 if (duration == null || duration <= 0) {
                     Toast.makeText(this, "Enter a valid duration", Toast.LENGTH_SHORT).show()
                     return@setOnClickListener
                 }
                 val type = activitySpinner.selectedItem.toString()
-                val calories = enteredCalories ?: (duration * when (type) { "Running", "Walking" -> 9; "Cycling" -> 8; "Weightlifting" -> 6; else -> 4 })
                 val distance = distanceInput.text.toString().toDoubleOrNull()
                 val weight = weightInput.text.toString().toDoubleOrNull()
                 val sets = setsInput.text.toString().toIntOrNull()
                 val reps = repsInput.text.toString().toIntOrNull()
-                if (type in listOf("Running", "Cycling") && (distance == null || distance <= 0)) {
+                if (type in listOf("Running", "Walking", "Cycling") && (distance == null || distance <= 0)) {
                     Toast.makeText(this, "Enter distance for cardio activities", Toast.LENGTH_SHORT).show()
                     return@setOnClickListener
                 }
                 if (type == "Weightlifting" && (exerciseInput.text.toString().isBlank() || weight == null || sets == null || reps == null || weight <= 0 || sets <= 0 || reps <= 0)) {
                     Toast.makeText(this, "Enter exercise, weight, sets and reps", Toast.LENGTH_SHORT).show()
+                    return@setOnClickListener
+                }
+                val calories = estimateWorkoutCalories(type, duration, distance)
+                if (calories <= 0) {
+                    Toast.makeText(this, "Enter valid details to estimate calories", Toast.LENGTH_SHORT).show()
                     return@setOnClickListener
                 }
 
