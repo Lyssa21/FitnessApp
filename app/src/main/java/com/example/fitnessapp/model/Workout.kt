@@ -1,6 +1,7 @@
 package com.example.fitnessapp.model
 
 import org.json.JSONObject
+import kotlin.math.roundToInt
 
 // Base class shared by every workout type.
 open class Workout(
@@ -142,7 +143,18 @@ object WorkoutFactory {
         , notes = json.optString("notes").ifBlank { null }
     ).apply {
         routePointsJson = json.optString("route_points").takeIf { it.isNotBlank() && it != "null" }
-        stepsCount = if (json.has("steps_count") && !json.isNull("steps_count")) json.optInt("steps_count") else null
+        // Older server records may not have steps_count yet. Recreate the same estimate
+        // from saved cardio distance so refreshing does not make the step total disappear.
+        stepsCount = if (json.has("steps_count") && !json.isNull("steps_count")) {
+            json.optInt("steps_count")
+        } else {
+            val strideMeters = when (activityName) {
+                "Walking" -> 0.72
+                "Running" -> 0.78
+                else -> null
+            }
+            strideMeters?.let { ((distanceKm ?: 0.0) * 1000.0 / it).roundToInt() }
+        }
     }
 
     private fun JSONObject.optDoubleOrNull(name: String): Double? {
