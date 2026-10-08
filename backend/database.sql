@@ -18,6 +18,12 @@ CREATE TABLE IF NOT EXISTS workouts (
     activity_type ENUM('Running', 'Cycling', 'Weightlifting', 'Yoga') NOT NULL,
     duration INT UNSIGNED NOT NULL,
     calories INT UNSIGNED NOT NULL,
+    distance_km DECIMAL(8, 2) NULL,
+    exercise_name VARCHAR(120) NULL,
+    weight_kg DECIMAL(8, 2) NULL,
+    sets INT UNSIGNED NULL,
+    reps INT UNSIGNED NULL,
+    notes TEXT NULL,
     workout_date DATE NOT NULL,
     latitude DECIMAL(10, 7) NULL,
     longitude DECIMAL(10, 7) NULL,
@@ -31,6 +37,13 @@ CREATE TABLE IF NOT EXISTS workouts (
 -- This also upgrades an existing installation created before Yoga was added.
 ALTER TABLE workouts
     MODIFY activity_type ENUM('Running', 'Cycling', 'Weightlifting', 'Yoga') NOT NULL;
+
+ALTER TABLE workouts ADD COLUMN IF NOT EXISTS distance_km DECIMAL(8, 2) NULL;
+ALTER TABLE workouts ADD COLUMN IF NOT EXISTS exercise_name VARCHAR(120) NULL;
+ALTER TABLE workouts ADD COLUMN IF NOT EXISTS weight_kg DECIMAL(8, 2) NULL;
+ALTER TABLE workouts ADD COLUMN IF NOT EXISTS sets INT UNSIGNED NULL;
+ALTER TABLE workouts ADD COLUMN IF NOT EXISTS reps INT UNSIGNED NULL;
+ALTER TABLE workouts ADD COLUMN IF NOT EXISTS notes TEXT NULL;
 
 CREATE TABLE IF NOT EXISTS fitness_goals (
     user_id INT UNSIGNED PRIMARY KEY,

@@ -16,6 +16,12 @@ class WorkoutRepository(context: Context) {
             "duration" to workout.durationMinutes.toString(), "calories" to workout.calories.toString(), "workout_date" to workout.date)
         workout.latitude?.let { values["latitude"] = it.toString() }
         workout.longitude?.let { values["longitude"] = it.toString() }
+        workout.distanceKm?.let { values["distance_km"] = it.toString() }
+        workout.exerciseName?.let { values["exercise_name"] = it }
+        workout.weightKg?.let { values["weight_kg"] = it.toString() }
+        workout.sets?.let { values["sets"] = it.toString() }
+        workout.reps?.let { values["reps"] = it.toString() }
+        workout.notes?.let { values["notes"] = it }
         ApiClient.post("add_workout.php", values) { result ->
             if (result.success) workout.id = result.data.optLong("workout_id", workout.id)
             callback(result.success, if (result.success) "Workout saved to server" else result.message)

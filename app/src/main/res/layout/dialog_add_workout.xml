@@ -34,6 +34,53 @@
         android:hint="Calories burned"
         android:inputType="number" />
 
+    <EditText
+        android:id="@+id/distanceEditText"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:hint="Distance in kilometres (running/cycling)"
+        android:inputType="numberDecimal" />
+
+    <EditText
+        android:id="@+id/exerciseNameEditText"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:hint="Exercise name (weightlifting)" />
+
+    <EditText
+        android:id="@+id/weightEditText"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:hint="Weight in kg (weightlifting)"
+        android:inputType="numberDecimal" />
+
+    <EditText
+        android:id="@+id/setsEditText"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:hint="Sets (weightlifting)"
+        android:inputType="number" />
+
+    <EditText
+        android:id="@+id/repsEditText"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:hint="Repetitions (weightlifting)"
+        android:inputType="number" />
+
+    <EditText
+        android:id="@+id/notesEditText"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:hint="Notes (optional)"
+        android:inputType="textCapSentences|textMultiLine" />
+
     <TextView
         android:id="@+id/dialogLocationTextView"
         android:layout_width="wrap_content"

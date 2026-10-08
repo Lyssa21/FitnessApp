@@ -13,6 +13,12 @@ $calories = filter_var($_POST['calories'] ?? null, FILTER_VALIDATE_INT);
 $workoutDate = post_value('workout_date') ?: date('Y-m-d');
 $latitude = post_value('latitude');
 $longitude = post_value('longitude');
+$distance = post_value('distance_km');
+$exerciseName = post_value('exercise_name');
+$weight = post_value('weight_kg');
+$sets = post_value('sets');
+$reps = post_value('reps');
+$notes = post_value('notes');
 $allowedActivities = ['Running', 'Cycling', 'Weightlifting', 'Yoga'];
 
 if (!$userId || !in_array($activityType, $allowedActivities, true)) {
@@ -28,9 +34,9 @@ if (!$dateObject || $dateObject->format('Y-m-d') !== $workoutDate) {
 
 $statement = $pdo->prepare(
     'INSERT INTO workouts
-        (user_id, activity_type, duration, calories, workout_date, latitude, longitude)
+        (user_id, activity_type, duration, calories, workout_date, latitude, longitude, distance_km, exercise_name, weight_kg, sets, reps, notes)
      VALUES
-        (:user_id, :activity_type, :duration, :calories, :workout_date, :latitude, :longitude)'
+        (:user_id, :activity_type, :duration, :calories, :workout_date, :latitude, :longitude, :distance_km, :exercise_name, :weight_kg, :sets, :reps, :notes)'
 );
 $statement->execute([
     'user_id' => $userId,
@@ -40,6 +46,12 @@ $statement->execute([
     'workout_date' => $workoutDate,
     'latitude' => $latitude === '' ? null : (float)$latitude,
     'longitude' => $longitude === '' ? null : (float)$longitude,
+    'distance_km' => $distance === '' ? null : (float)$distance,
+    'exercise_name' => $exerciseName === '' ? null : $exerciseName,
+    'weight_kg' => $weight === '' ? null : (float)$weight,
+    'sets' => $sets === '' ? null : (int)$sets,
+    'reps' => $reps === '' ? null : (int)$reps,
+    'notes' => $notes === '' ? null : $notes,
 ]);
 
 send_json(true, 'Workout saved successfully.', [

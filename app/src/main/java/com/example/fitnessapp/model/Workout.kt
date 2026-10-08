@@ -10,7 +10,13 @@ open class Workout(
     val calories: Int,
     val date: String,
     val latitude: Double? = null,
-    val longitude: Double? = null
+    val longitude: Double? = null,
+    val distanceKm: Double? = null,
+    val exerciseName: String? = null,
+    val weightKg: Double? = null,
+    val sets: Int? = null,
+    val reps: Int? = null,
+    val notes: String? = null
 ) {
     open val icon: String = "💪"
 
@@ -22,6 +28,12 @@ open class Workout(
         put("workout_date", date)
         latitude?.let { put("latitude", it) }
         longitude?.let { put("longitude", it) }
+        distanceKm?.let { put("distance_km", it) }
+        exerciseName?.let { put("exercise_name", it) }
+        weightKg?.let { put("weight_kg", it) }
+        sets?.let { put("sets", it) }
+        reps?.let { put("reps", it) }
+        notes?.let { put("notes", it) }
     }
 }
 
@@ -31,8 +43,10 @@ class RunningWorkout(
     calories: Int,
     date: String,
     latitude: Double? = null,
-    longitude: Double? = null
-) : Workout(id, "Running", durationMinutes, calories, date, latitude, longitude) {
+    longitude: Double? = null,
+    distanceKm: Double? = null,
+    notes: String? = null
+) : Workout(id, "Running", durationMinutes, calories, date, latitude, longitude, distanceKm = distanceKm, notes = notes) {
     override val icon = "🏃‍♀️"
 }
 
@@ -42,8 +56,10 @@ class CyclingWorkout(
     calories: Int,
     date: String,
     latitude: Double? = null,
-    longitude: Double? = null
-) : Workout(id, "Cycling", durationMinutes, calories, date, latitude, longitude) {
+    longitude: Double? = null,
+    distanceKm: Double? = null,
+    notes: String? = null
+) : Workout(id, "Cycling", durationMinutes, calories, date, latitude, longitude, distanceKm = distanceKm, notes = notes) {
     override val icon = "🚴‍♀️"
 }
 
@@ -53,8 +69,13 @@ class WeightliftingWorkout(
     calories: Int,
     date: String,
     latitude: Double? = null,
-    longitude: Double? = null
-) : Workout(id, "Weightlifting", durationMinutes, calories, date, latitude, longitude) {
+    longitude: Double? = null,
+    exerciseName: String? = null,
+    weightKg: Double? = null,
+    sets: Int? = null,
+    reps: Int? = null,
+    notes: String? = null
+) : Workout(id, "Weightlifting", durationMinutes, calories, date, latitude, longitude, exerciseName = exerciseName, weightKg = weightKg, sets = sets, reps = reps, notes = notes) {
     override val icon = "🏋️‍♀️"
 }
 
@@ -64,8 +85,9 @@ class YogaWorkout(
     calories: Int,
     date: String,
     latitude: Double? = null,
-    longitude: Double? = null
-) : Workout(id, "Yoga", durationMinutes, calories, date, latitude, longitude) {
+    longitude: Double? = null,
+    notes: String? = null
+) : Workout(id, "Yoga", durationMinutes, calories, date, latitude, longitude, notes = notes) {
     override val icon = "🧘‍♀️"
 }
 
@@ -77,12 +99,18 @@ object WorkoutFactory {
         calories: Int,
         date: String,
         latitude: Double? = null,
-        longitude: Double? = null
+        longitude: Double? = null,
+        distanceKm: Double? = null,
+        exerciseName: String? = null,
+        weightKg: Double? = null,
+        sets: Int? = null,
+        reps: Int? = null,
+        notes: String? = null
     ): Workout = when (type.lowercase()) {
-        "running" -> RunningWorkout(id, duration, calories, date, latitude, longitude)
-        "cycling" -> CyclingWorkout(id, duration, calories, date, latitude, longitude)
-        "weightlifting" -> WeightliftingWorkout(id, duration, calories, date, latitude, longitude)
-        else -> YogaWorkout(id, duration, calories, date, latitude, longitude)
+        "running" -> RunningWorkout(id, duration, calories, date, latitude, longitude, distanceKm, notes)
+        "cycling" -> CyclingWorkout(id, duration, calories, date, latitude, longitude, distanceKm, notes)
+        "weightlifting" -> WeightliftingWorkout(id, duration, calories, date, latitude, longitude, exerciseName, weightKg, sets, reps, notes)
+        else -> YogaWorkout(id, duration, calories, date, latitude, longitude, notes)
     }
 
     fun fromJson(json: JSONObject): Workout = create(
@@ -93,9 +121,17 @@ object WorkoutFactory {
         date = json.optString("workout_date"),
         latitude = json.optDoubleOrNull("latitude"),
         longitude = json.optDoubleOrNull("longitude")
+        , distanceKm = json.optDoubleOrNull("distance_km")
+        , exerciseName = json.optString("exercise_name").ifBlank { null }
+        , weightKg = json.optDoubleOrNull("weight_kg")
+        , sets = json.optIntOrNull("sets")
+        , reps = json.optIntOrNull("reps")
+        , notes = json.optString("notes").ifBlank { null }
     )
 
     private fun JSONObject.optDoubleOrNull(name: String): Double? {
         return if (has(name) && !isNull(name)) optDouble(name) else null
     }
+
+    private fun JSONObject.optIntOrNull(name: String): Int? = if (has(name) && !isNull(name)) optInt(name) else null
 }

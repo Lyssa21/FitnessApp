@@ -100,6 +100,12 @@ class MainActivity : AppCompatActivity() {
         val activitySpinner = dialogView.findViewById<Spinner>(R.id.activitySpinner)
         val durationInput = dialogView.findViewById<EditText>(R.id.durationEditText)
         val caloriesInput = dialogView.findViewById<EditText>(R.id.caloriesEditText)
+        val distanceInput = dialogView.findViewById<EditText>(R.id.distanceEditText)
+        val exerciseInput = dialogView.findViewById<EditText>(R.id.exerciseNameEditText)
+        val weightInput = dialogView.findViewById<EditText>(R.id.weightEditText)
+        val setsInput = dialogView.findViewById<EditText>(R.id.setsEditText)
+        val repsInput = dialogView.findViewById<EditText>(R.id.repsEditText)
+        val notesInput = dialogView.findViewById<EditText>(R.id.notesEditText)
         val dialogLocation = dialogView.findViewById<TextView>(R.id.dialogLocationTextView)
 
         val activityTypes = listOf("Running", "Cycling", "Weightlifting", "Yoga")
@@ -129,14 +135,33 @@ class MainActivity : AppCompatActivity() {
                     Toast.makeText(this, "Enter a valid duration and calories", Toast.LENGTH_SHORT).show()
                     return@setOnClickListener
                 }
+                val type = activitySpinner.selectedItem.toString()
+                val distance = distanceInput.text.toString().toDoubleOrNull()
+                val weight = weightInput.text.toString().toDoubleOrNull()
+                val sets = setsInput.text.toString().toIntOrNull()
+                val reps = repsInput.text.toString().toIntOrNull()
+                if (type in listOf("Running", "Cycling") && (distance == null || distance <= 0)) {
+                    Toast.makeText(this, "Enter distance for cardio activities", Toast.LENGTH_SHORT).show()
+                    return@setOnClickListener
+                }
+                if (type == "Weightlifting" && (exerciseInput.text.toString().isBlank() || weight == null || sets == null || reps == null || weight <= 0 || sets <= 0 || reps <= 0)) {
+                    Toast.makeText(this, "Enter exercise, weight, sets and reps", Toast.LENGTH_SHORT).show()
+                    return@setOnClickListener
+                }
 
                 val workout = WorkoutFactory.create(
-                    type = activitySpinner.selectedItem.toString(),
+                    type = type,
                     duration = duration,
                     calories = calories,
                     date = SimpleDateFormat("yyyy-MM-dd", Locale.US).format(Date()),
                     latitude = currentLatitude,
                     longitude = currentLongitude
+                    , distanceKm = distance
+                    , exerciseName = exerciseInput.text.toString().trim().ifBlank { null }
+                    , weightKg = weight
+                    , sets = sets
+                    , reps = reps
+                    , notes = notesInput.text.toString().trim().ifBlank { null }
                 )
                 repository.addWorkout(workout, session.userId) { success, message ->
                     if (success) {
