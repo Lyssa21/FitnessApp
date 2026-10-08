@@ -16,7 +16,7 @@ data class ApiResult(
 
 object ApiClient {
     // 10.0.2.2 points from the Android emulator to the computer running XAMPP.
-    const val BASE_URL = "http://10.0.2.2/fitness_api/"
+    const val BASE_URL = "http://192.168.100.44/fitness_api/"
 
     private val executor = Executors.newSingleThreadExecutor()
     private val mainHandler = Handler(Looper.getMainLooper())
