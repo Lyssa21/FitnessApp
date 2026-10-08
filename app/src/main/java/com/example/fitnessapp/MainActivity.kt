@@ -56,6 +56,7 @@ class MainActivity : BaseActivity() {
     private var trackingActivityType = "Running"
     private var trackingRouteJson = "[]"
     private var pendingTrackingWorkout: Workout? = null
+    private var pendingGpsStart = false
 
     private val trackingReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: android.content.Context?, intent: Intent?) {
@@ -68,7 +69,7 @@ class MainActivity : BaseActivity() {
                 currentLatitude = intent.getDoubleExtra("latitude", 0.0)
                 currentLongitude = intent.getDoubleExtra("longitude", 0.0)
                 findViewById<TextView>(R.id.trackingStatusTextView).text =
-                    "Tracking: %.2f km • %d steps • %d min • %d kcal".format(trackingDistanceKm, trackingSteps, trackingMinutes, trackingCalories)
+                    "Tracking: %.2f km • %d estimated GPS steps • %d min • %d kcal".format(trackingDistanceKm, trackingSteps, trackingMinutes, trackingCalories)
             }
         }
     }
@@ -76,7 +77,8 @@ class MainActivity : BaseActivity() {
     private val locationPermissionRequest = registerForActivityResult(
         ActivityResultContracts.RequestPermission()
     ) { granted ->
-        if (granted) readCurrentLocation()
+        if (granted && pendingGpsStart) { pendingGpsStart = false; startGpsTracking() }
+        else if (granted) readCurrentLocation()
         else Toast.makeText(this, "Location permission was not granted", Toast.LENGTH_SHORT).show()
     }
     private val notificationPermissionRequest = registerForActivityResult(ActivityResultContracts.RequestPermission()) { }
@@ -147,7 +149,9 @@ class MainActivity : BaseActivity() {
 
     private fun startGpsTracking() {
         if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
-            requestLocation(); return
+            pendingGpsStart = true
+            locationPermissionRequest.launch(Manifest.permission.ACCESS_FINE_LOCATION)
+            return
         }
         trackingDistanceKm = 0.0; trackingMinutes = 0; trackingSteps = 0; trackingCalories = 0; trackingRouteJson = "[]"; pendingTrackingWorkout = null
         trackingActivityType = findViewById<Spinner>(R.id.trackingTypeSpinner).selectedItem.toString()
@@ -165,9 +169,12 @@ class MainActivity : BaseActivity() {
         if (trackingMinutes > 0) {
             pendingTrackingWorkout = WorkoutFactory.create(trackingActivityType, duration = trackingMinutes.toInt(), calories = trackingCalories,
                 date = SimpleDateFormat("yyyy-MM-dd", Locale.US).format(Date()), distanceKm = trackingDistanceKm,
-                latitude = currentLatitude, longitude = currentLongitude, notes = "GPS tracked; estimated steps: $trackingSteps").apply { routePointsJson = trackingRouteJson }
+                latitude = currentLatitude, longitude = currentLongitude, notes = "GPS tracked; estimated steps: $trackingSteps").apply {
+                    routePointsJson = trackingRouteJson
+                    stepsCount = trackingSteps
+                }
             findViewById<Button>(R.id.saveTrackingButton).visibility = android.view.View.VISIBLE
-            findViewById<TextView>(R.id.trackingStatusTextView).text = "Ready: %.2f km • %d steps • %d kcal. Tap Save progress.".format(trackingDistanceKm, trackingSteps, trackingCalories)
+            findViewById<TextView>(R.id.trackingStatusTextView).text = "Ready: %.2f km • %d estimated GPS steps • %d kcal. Tap Save progress.".format(trackingDistanceKm, trackingSteps, trackingCalories)
         } else findViewById<TextView>(R.id.trackingStatusTextView).text = "No GPS fix received. Enable location and try outdoors."
     }
 
@@ -337,7 +344,7 @@ class MainActivity : BaseActivity() {
         val volume = (workout.weightKg ?: 0.0) * (workout.sets ?: 0) * (workout.reps ?: 0)
         AlertDialog.Builder(this)
             .setTitle("${workout.activityName} details")
-            .setMessage("Date: ${workout.date}\nDuration: ${workout.durationMinutes} min\nDistance: ${"%.2f".format(workout.distanceKm ?: 0.0)} km\nAverage speed: ${"%.2f".format(speed)} km/h\nCalories: ${workout.calories} kcal\nLifting volume: ${"%.1f".format(volume)} kg\nNotes: ${workout.notes ?: "None"}")
+            .setMessage("Date: ${workout.date}\nDuration: ${workout.durationMinutes} min\nDistance: ${"%.2f".format(workout.distanceKm ?: 0.0)} km\nAverage speed: ${"%.2f".format(speed)} km/h\nEstimated GPS steps: ${workout.stepsCount ?: "Not available"}\nCalories: ${workout.calories} kcal\nLifting volume: ${"%.1f".format(volume)} kg\nNotes: ${workout.notes ?: "None"}")
             .setNeutralButton("Edit") { _, _ -> showAddWorkoutDialog(workout) }
             .apply { if (!workout.routePointsJson.isNullOrBlank()) setNegativeButton("View route") { _, _ -> startActivity(Intent(this@MainActivity, RouteMapActivity::class.java).putExtra(RouteMapActivity.EXTRA_POINTS, workout.routePointsJson)) } }
             .setPositiveButton("Close", null)
@@ -385,9 +392,7 @@ class MainActivity : BaseActivity() {
         val today = SimpleDateFormat("yyyy-MM-dd", Locale.US).format(Date())
         val todaysWorkouts = workouts.filter { it.date == today }
         val calories = todaysWorkouts.sumOf { it.calories }
-        val estimatedSteps = todaysWorkouts
-            .filter { it.activityName == "Running" }
-            .sumOf { it.durationMinutes * 100 }
+        val estimatedSteps = todaysWorkouts.sumOf { it.stepsCount ?: 0 }
         val goal = repository.goalTarget
         val progressValue = if (repository.goalType == "distance") {
             val weekStart = java.util.Calendar.getInstance().apply { add(java.util.Calendar.DAY_OF_YEAR, -6) }.time

@@ -26,6 +26,7 @@ class WorkoutRepository(context: Context) {
         workout.reps?.let { values["reps"] = it.toString() }
         workout.notes?.let { values["notes"] = it }
         workout.routePointsJson?.let { values["route_points"] = it }
+        workout.stepsCount?.let { values["steps_count"] = it.toString() }
         ApiClient.post("add_workout.php", values) { result ->
             if (result.success) workout.id = result.data.optLong("workout_id", workout.id)
             callback(result.success, if (result.success) "Workout saved to server" else result.message)
@@ -49,6 +50,7 @@ class WorkoutRepository(context: Context) {
         workout.weightKg?.let { put("weight_kg", it.toString()) }
         workout.sets?.let { put("sets", it.toString()) }; workout.reps?.let { put("reps", it.toString()) }
         workout.notes?.let { put("notes", it) }; workout.latitude?.let { put("latitude", it.toString()) }
+        workout.stepsCount?.let { put("steps_count", it.toString()) }
         workout.longitude?.let { put("longitude", it.toString()) }; workout.routePointsJson?.let { put("route_points", it) }
     }
 
