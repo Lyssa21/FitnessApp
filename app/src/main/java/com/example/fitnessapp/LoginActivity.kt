@@ -7,11 +7,10 @@ import android.widget.Button
 import android.widget.EditText
 import android.widget.ProgressBar
 import android.widget.Toast
-import androidx.appcompat.app.AppCompatActivity
 import com.example.fitnessapp.data.SessionManager
 import com.example.fitnessapp.network.ApiClient
 
-class LoginActivity : AppCompatActivity() {
+class LoginActivity : BaseActivity() {
     private lateinit var session: SessionManager
 
     override fun onCreate(savedInstanceState: Bundle?) {

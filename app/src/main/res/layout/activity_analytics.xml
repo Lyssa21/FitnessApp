@@ -36,6 +36,14 @@
             android:textColor="@color/muted_pink_text"
             android:textSize="14sp" />
 
+        <TextView
+            android:id="@+id/detailMetricsTextView"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="12dp"
+            android:text="Distance: 0 km\nLifting volume: 0 kg\nAverage cardio speed: 0 km/h"
+            android:textColor="@color/dark_pink_text" />
+
         <androidx.cardview.widget.CardView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
