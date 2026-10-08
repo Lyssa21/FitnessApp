@@ -10,6 +10,7 @@ import android.location.LocationManager
 import android.os.Bundle
 import android.app.DatePickerDialog
 import android.os.CancellationSignal
+import android.view.View
 import android.widget.ArrayAdapter
 import android.widget.Button
 import android.widget.EditText
@@ -212,6 +213,19 @@ class MainActivity : BaseActivity() {
         val repsInput = dialogView.findViewById<EditText>(R.id.repsEditText)
         val notesInput = dialogView.findViewById<EditText>(R.id.notesEditText)
         val dateButton = dialogView.findViewById<Button>(R.id.dateButton)
+        val cardioFields = listOf(distanceInput)
+        val strengthFields = listOf(exerciseInput, weightInput, setsInput, repsInput)
+        fun updateActivityFields(type: String) {
+            cardioFields.forEach { it.visibility = if (type == "Running" || type == "Cycling") View.VISIBLE else View.GONE }
+            strengthFields.forEach { it.visibility = if (type == "Weightlifting") View.VISIBLE else View.GONE }
+            caloriesInput.visibility = View.GONE // Calories are estimated automatically from activity and duration.
+        }
+        activitySpinner.onItemSelectedListener = object : android.widget.AdapterView.OnItemSelectedListener {
+            override fun onItemSelected(parent: android.widget.AdapterView<*>?, view: View?, position: Int, id: Long) {
+                updateActivityFields(activitySpinner.getItemAtPosition(position).toString())
+            }
+            override fun onNothingSelected(parent: android.widget.AdapterView<*>?) = Unit
+        }
         var selectedDate = SimpleDateFormat("yyyy-MM-dd", Locale.US).format(Date())
         dateButton.text = "Date: $selectedDate"
         dateButton.setOnClickListener {
@@ -243,6 +257,7 @@ class MainActivity : BaseActivity() {
             selectedDate = existing.date
             dateButton.text = "Date: $selectedDate"
         }
+        updateActivityFields(editWorkout?.activityName ?: activityTypes.first())
         dialogLocation.text = if (currentLatitude != null && currentLongitude != null) {
             "Location: %.4f, %.4f".format(currentLatitude, currentLongitude)
         } else {
