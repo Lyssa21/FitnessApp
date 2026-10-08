@@ -18,7 +18,7 @@ ALTER TABLE users ADD COLUMN IF NOT EXISTS session_token CHAR(64) NULL;
 CREATE TABLE IF NOT EXISTS workouts (
     id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
     user_id INT UNSIGNED NOT NULL,
-    activity_type ENUM('Running', 'Cycling', 'Weightlifting', 'Yoga') NOT NULL,
+    activity_type ENUM('Running', 'Walking', 'Cycling', 'Weightlifting', 'Yoga') NOT NULL,
     duration INT UNSIGNED NOT NULL,
     calories INT UNSIGNED NOT NULL,
     distance_km DECIMAL(8, 2) NULL,
@@ -39,7 +39,7 @@ CREATE TABLE IF NOT EXISTS workouts (
 
 -- This also upgrades an existing installation created before Yoga was added.
 ALTER TABLE workouts
-    MODIFY activity_type ENUM('Running', 'Cycling', 'Weightlifting', 'Yoga') NOT NULL;
+    MODIFY activity_type ENUM('Running', 'Walking', 'Cycling', 'Weightlifting', 'Yoga') NOT NULL;
 
 ALTER TABLE workouts ADD COLUMN IF NOT EXISTS distance_km DECIMAL(8, 2) NULL;
 ALTER TABLE workouts ADD COLUMN IF NOT EXISTS exercise_name VARCHAR(120) NULL;

@@ -50,6 +50,7 @@ class MainActivity : BaseActivity() {
     private var trackingDistanceKm = 0.0
     private var trackingMinutes = 0L
     private var trackingSteps = 0
+    private var trackingActivityType = "Running"
 
     private val trackingReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: android.content.Context?, intent: Intent?) {
@@ -85,6 +86,7 @@ class MainActivity : BaseActivity() {
         goalProgress = findViewById(R.id.calorieGoalProgressBar)
 
         setupWorkoutList()
+        findViewById<Spinner>(R.id.trackingTypeSpinner).adapter = ArrayAdapter(this, android.R.layout.simple_spinner_dropdown_item, listOf("Running", "Walking"))
         updateSummary()
 
         findViewById<FloatingActionButton>(R.id.btnAddWorkout).setOnClickListener {
@@ -123,6 +125,7 @@ class MainActivity : BaseActivity() {
             requestLocation(); return
         }
         trackingDistanceKm = 0.0; trackingMinutes = 0; trackingSteps = 0
+        trackingActivityType = findViewById<Spinner>(R.id.trackingTypeSpinner).selectedItem.toString()
         startForegroundService(this, Intent(this, TrackingService::class.java))
         findViewById<Button>(R.id.startTrackingButton).isEnabled = false
         findViewById<Button>(R.id.stopTrackingButton).isEnabled = true
@@ -134,7 +137,7 @@ class MainActivity : BaseActivity() {
         findViewById<Button>(R.id.startTrackingButton).isEnabled = true
         findViewById<Button>(R.id.stopTrackingButton).isEnabled = false
         if (trackingMinutes > 0 && trackingDistanceKm > 0.0) {
-            val workout = WorkoutFactory.create("Running", duration = trackingMinutes.toInt(), calories = (trackingMinutes * 8).toInt(),
+            val workout = WorkoutFactory.create(trackingActivityType, duration = trackingMinutes.toInt(), calories = (trackingMinutes * 8).toInt(),
                 date = SimpleDateFormat("yyyy-MM-dd", Locale.US).format(Date()), distanceKm = trackingDistanceKm,
                 latitude = currentLatitude, longitude = currentLongitude, notes = "GPS tracked; estimated steps: $trackingSteps")
             repository.addWorkout(workout, session.userId) { success, message ->

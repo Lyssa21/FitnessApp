@@ -19,7 +19,7 @@ $weight = post_value('weight_kg');
 $sets = post_value('sets');
 $reps = post_value('reps');
 $notes = post_value('notes');
-$allowedActivities = ['Running', 'Cycling', 'Weightlifting', 'Yoga'];
+$allowedActivities = ['Running', 'Walking', 'Cycling', 'Weightlifting', 'Yoga'];
 
 if (!$userId || !in_array($activityType, $allowedActivities, true)) {
     send_json(false, 'A valid user and activity type are required.', [], 422);

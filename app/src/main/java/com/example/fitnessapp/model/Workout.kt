@@ -63,6 +63,14 @@ class CyclingWorkout(
     override val icon = "🚴‍♀️"
 }
 
+class WalkingWorkout(
+    id: Long, durationMinutes: Int, calories: Int, date: String,
+    latitude: Double? = null, longitude: Double? = null,
+    distanceKm: Double? = null, notes: String? = null
+) : Workout(id, "Walking", durationMinutes, calories, date, latitude, longitude, distanceKm = distanceKm, notes = notes) {
+    override val icon = "🚶"
+}
+
 class WeightliftingWorkout(
     id: Long,
     durationMinutes: Int,
@@ -109,6 +117,7 @@ object WorkoutFactory {
     ): Workout = when (type.lowercase()) {
         "running" -> RunningWorkout(id, duration, calories, date, latitude, longitude, distanceKm, notes)
         "cycling" -> CyclingWorkout(id, duration, calories, date, latitude, longitude, distanceKm, notes)
+        "walking" -> WalkingWorkout(id, duration, calories, date, latitude, longitude, distanceKm, notes)
         "weightlifting" -> WeightliftingWorkout(id, duration, calories, date, latitude, longitude, exerciseName, weightKg, sets, reps, notes)
         else -> YogaWorkout(id, duration, calories, date, latitude, longitude, notes)
     }
