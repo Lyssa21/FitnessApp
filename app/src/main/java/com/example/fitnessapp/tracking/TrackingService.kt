@@ -78,14 +78,14 @@ class TrackingService : Service() {
         val elapsedSeconds = ((System.currentTimeMillis() - startedAt) / 1000L).coerceAtLeast(1L)
         val minutes = (elapsedSeconds / 60.0).roundToInt().coerceAtLeast(1)
         val strideMeters = when (activityType) { "Walking" -> 0.72f; "Running" -> 0.78f; else -> 0.72f }
-        val kcalPerMinute = when (activityType) { "Walking" -> 4; "Cycling" -> 8; else -> 9 }
+        val calories = estimateDistanceCalories(distanceMeters / 1000.0)
         val steps = (distanceMeters / strideMeters).roundToInt()
         sendBroadcast(Intent(ACTION_UPDATE).setPackage(packageName).apply {
             putExtra("distance_km", distanceMeters / 1000.0)
             putExtra("steps", steps)
             putExtra("steps_available", true) // GPS-derived estimate, not the hardware pedometer.
             putExtra("minutes", minutes.toLong())
-            putExtra("calories", (elapsedSeconds / 60.0 * kcalPerMinute).roundToInt().coerceAtLeast(1))
+            putExtra("calories", calories)
             putExtra("route_points", routePoints.toString())
             putExtra("latitude", lat)
             putExtra("longitude", lng)
@@ -99,19 +99,24 @@ class TrackingService : Service() {
         val elapsedSeconds = ((System.currentTimeMillis() - startedAt) / 1000L).coerceAtLeast(1L)
         val minutes = ((elapsedSeconds + 59L) / 60L).toInt().coerceAtLeast(1)
         val strideMeters = if (activityType == "Running") 0.78f else 0.72f
-        val kcalPerMinute = if (activityType == "Walking") 4 else 9
         val lastPoint = routePoints.optJSONObject(routePoints.length() - 1)
         sendBroadcast(Intent(ACTION_UPDATE).setPackage(packageName).apply {
             putExtra("distance_km", distanceMeters / 1000.0)
             putExtra("steps", (distanceMeters / strideMeters).roundToInt())
             putExtra("minutes", minutes.toLong())
-            putExtra("calories", (elapsedSeconds / 60.0 * kcalPerMinute).roundToInt().coerceAtLeast(1))
+            putExtra("calories", estimateDistanceCalories(distanceMeters / 1000.0))
             putExtra("route_points", routePoints.toString())
             if (lastPoint != null) {
                 putExtra("latitude", lastPoint.optDouble("lat"))
                 putExtra("longitude", lastPoint.optDouble("lng"))
             }
         })
+    }
+
+    /** Rough distance-based estimate. Calories vary by body mass and effort; this is a demo estimate. */
+    private fun estimateDistanceCalories(distanceKm: Double): Int {
+        val kcalPerKm = if (activityType == "Walking") 45.0 else 60.0
+        return (distanceKm * kcalPerKm).roundToInt().coerceAtLeast(if (distanceKm > 0.0) 1 else 0)
     }
 
     private fun notification(text: String): Notification = NotificationCompat.Builder(this, CHANNEL)

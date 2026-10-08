@@ -142,7 +142,10 @@ class MainActivity : BaseActivity() {
 
     override fun onResume() {
         super.onResume()
-        ContextCompat.registerReceiver(this, trackingReceiver, IntentFilter(TrackingService.ACTION_UPDATE), ContextCompat.RECEIVER_NOT_EXPORTED)
+        ContextCompat.registerReceiver(this, trackingReceiver, IntentFilter().apply {
+            addAction(TrackingService.ACTION_UPDATE)
+            addAction(TrackingService.ACTION_STOPPED)
+        }, ContextCompat.RECEIVER_NOT_EXPORTED)
     }
 
     override fun onPause() {
@@ -181,8 +184,13 @@ class MainActivity : BaseActivity() {
                     routePointsJson = trackingRouteJson
                     stepsCount = trackingSteps
                 }
-            findViewById<Button>(R.id.saveTrackingButton).visibility = android.view.View.VISIBLE
-            findViewById<TextView>(R.id.trackingStatusTextView).text = "Ready: %.2f km • %d estimated GPS steps • %d kcal. Tap Save progress.".format(trackingDistanceKm, trackingSteps, trackingCalories)
+            findViewById<Button>(R.id.saveTrackingButton).apply {
+                visibility = android.view.View.VISIBLE
+                isEnabled = true
+                text = "SAVE PROGRESS TO ACCOUNT"
+            }
+            findViewById<TextView>(R.id.trackingStatusTextView).text =
+                "Ready to save: %.2f km • %d estimated GPS steps • %d kcal (distance estimate).".format(trackingDistanceKm, trackingSteps, trackingCalories)
         } else {
             findViewById<TextView>(R.id.trackingStatusTextView).text = "No GPS fix received. Enable location and try outdoors."
         }

@@ -99,13 +99,16 @@
                     android:layout_height="wrap_content" android:layout_weight="1"
                     android:text="Stop GPS" android:enabled="false" />
             </LinearLayout>
-            <com.google.android.material.button.MaterialButton
-                android:id="@+id/saveTrackingButton" android:layout_width="match_parent"
-                android:layout_height="wrap_content" android:text="Save progress to account"
-                android:visibility="gone" />
             <TextView android:id="@+id/trackingStatusTextView" android:layout_width="match_parent"
                 android:layout_height="wrap_content" android:layout_marginTop="4dp"
                 android:text="GPS tracking is stopped" android:textColor="@color/muted_pink_text" />
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/saveTrackingButton" android:layout_width="match_parent"
+                android:layout_height="56dp" android:layout_marginTop="8dp"
+                android:text="SAVE GPS PROGRESS TO ACCOUNT"
+                android:textStyle="bold"
+                android:visibility="gone"
+                app:cornerRadius="14dp" />
 
             <androidx.cardview.widget.CardView
                 android:layout_width="match_parent"
