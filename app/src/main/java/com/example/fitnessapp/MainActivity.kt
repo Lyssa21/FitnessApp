@@ -2,6 +2,8 @@ package com.example.fitnessapp
 
 import android.Manifest
 import android.content.Intent
+import android.content.BroadcastReceiver
+import android.content.IntentFilter
 import android.content.pm.PackageManager
 import android.location.Location
 import android.location.LocationManager
@@ -17,6 +19,7 @@ import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AlertDialog
 import androidx.core.content.ContextCompat
+import androidx.core.content.ContextCompat.startForegroundService
 import androidx.core.location.LocationManagerCompat
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
@@ -24,6 +27,7 @@ import com.example.fitnessapp.data.SessionManager
 import com.example.fitnessapp.data.WorkoutRepository
 import com.example.fitnessapp.model.Workout
 import com.example.fitnessapp.model.WorkoutFactory
+import com.example.fitnessapp.tracking.TrackingService
 import com.google.android.material.floatingactionbutton.FloatingActionButton
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -43,6 +47,21 @@ class MainActivity : BaseActivity() {
 
     private var currentLatitude: Double? = null
     private var currentLongitude: Double? = null
+    private var trackingDistanceKm = 0.0
+    private var trackingMinutes = 0L
+    private var trackingSteps = 0
+
+    private val trackingReceiver = object : BroadcastReceiver() {
+        override fun onReceive(context: android.content.Context?, intent: Intent?) {
+            if (intent?.action == TrackingService.ACTION_UPDATE) {
+                trackingDistanceKm = intent.getDoubleExtra("distance_km", 0.0)
+                trackingMinutes = intent.getLongExtra("minutes", 0L)
+                trackingSteps = intent.getIntExtra("steps", 0)
+                findViewById<TextView>(R.id.trackingStatusTextView).text =
+                    "Tracking: %.2f km • %d steps • %d min".format(trackingDistanceKm, trackingSteps, trackingMinutes)
+            }
+        }
+    }
 
     private val locationPermissionRequest = registerForActivityResult(
         ActivityResultContracts.RequestPermission()
@@ -72,6 +91,8 @@ class MainActivity : BaseActivity() {
             showAddWorkoutDialog()
         }
         findViewById<Button>(R.id.locationButton).setOnClickListener { requestLocation() }
+        findViewById<Button>(R.id.startTrackingButton).setOnClickListener { startGpsTracking() }
+        findViewById<Button>(R.id.stopTrackingButton).setOnClickListener { stopGpsTracking() }
         findViewById<Button>(R.id.editGoalButton).setOnClickListener { showGoalDialog() }
         findViewById<Button>(R.id.analyticsButton).setOnClickListener {
             startActivity(Intent(this, AnalyticsActivity::class.java))
@@ -85,6 +106,43 @@ class MainActivity : BaseActivity() {
             updateSummary()
         }) { message -> Toast.makeText(this, message, Toast.LENGTH_LONG).show() }
         repository.loadGoalFromServer(session.userId) { updateSummary() }
+    }
+
+    override fun onResume() {
+        super.onResume()
+        ContextCompat.registerReceiver(this, trackingReceiver, IntentFilter(TrackingService.ACTION_UPDATE), ContextCompat.RECEIVER_NOT_EXPORTED)
+    }
+
+    override fun onPause() {
+        unregisterReceiver(trackingReceiver)
+        super.onPause()
+    }
+
+    private fun startGpsTracking() {
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+            requestLocation(); return
+        }
+        trackingDistanceKm = 0.0; trackingMinutes = 0; trackingSteps = 0
+        startForegroundService(this, Intent(this, TrackingService::class.java))
+        findViewById<Button>(R.id.startTrackingButton).isEnabled = false
+        findViewById<Button>(R.id.stopTrackingButton).isEnabled = true
+        findViewById<TextView>(R.id.trackingStatusTextView).text = "Starting GPS tracking..."
+    }
+
+    private fun stopGpsTracking() {
+        stopService(Intent(this, TrackingService::class.java))
+        findViewById<Button>(R.id.startTrackingButton).isEnabled = true
+        findViewById<Button>(R.id.stopTrackingButton).isEnabled = false
+        if (trackingMinutes > 0 && trackingDistanceKm > 0.0) {
+            val workout = WorkoutFactory.create("Running", duration = trackingMinutes.toInt(), calories = (trackingMinutes * 8).toInt(),
+                date = SimpleDateFormat("yyyy-MM-dd", Locale.US).format(Date()), distanceKm = trackingDistanceKm,
+                latitude = currentLatitude, longitude = currentLongitude, notes = "GPS tracked; estimated steps: $trackingSteps")
+            repository.addWorkout(workout, session.userId) { success, message ->
+                if (success) { workouts.add(0, workout); adapter.notifyItemInserted(0); updateSummary() }
+                Toast.makeText(this, message, Toast.LENGTH_SHORT).show()
+            }
+        }
+        findViewById<TextView>(R.id.trackingStatusTextView).text = "GPS tracking stopped"
     }
 
     private fun setupWorkoutList() {
