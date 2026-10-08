@@ -96,14 +96,5 @@
             android:text="New here? Create an account"
             android:textColor="@color/primary_pink" />
 
-        <com.google.android.material.button.MaterialButton
-            android:id="@+id/offlineButton"
-            style="@style/Widget.MaterialComponents.Button.OutlinedButton"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="6dp"
-            android:text="Continue offline"
-            android:textColor="@color/primary_pink"
-            app:strokeColor="@color/primary_pink" />
     </LinearLayout>
 </ScrollView>

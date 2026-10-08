@@ -79,13 +79,12 @@ class MainActivity : AppCompatActivity() {
         }
         findViewById<Button>(R.id.logoutButton).setOnClickListener { logOut() }
 
-        // Refresh local information with records from MySQL when signed in online.
-        repository.loadFromServer(session.userId) { serverWorkouts ->
+        repository.loadFromServer(session.userId, { serverWorkouts ->
             workouts.clear()
             workouts.addAll(serverWorkouts)
             adapter.notifyDataSetChanged()
             updateSummary()
-        }
+        }) { message -> Toast.makeText(this, message, Toast.LENGTH_LONG).show() }
         repository.loadGoalFromServer(session.userId) { updateSummary() }
     }
 
@@ -139,10 +138,12 @@ class MainActivity : AppCompatActivity() {
                     latitude = currentLatitude,
                     longitude = currentLongitude
                 )
-                workouts.add(0, workout)
-                adapter.notifyItemInserted(0)
-                updateSummary()
-                repository.addWorkout(workout, session.userId) { _, message ->
+                repository.addWorkout(workout, session.userId) { success, message ->
+                    if (success) {
+                        workouts.add(0, workout)
+                        adapter.notifyItemInserted(0)
+                        updateSummary()
+                    }
                     Toast.makeText(this, message, Toast.LENGTH_SHORT).show()
                 }
                 dialog.dismiss()
@@ -159,12 +160,13 @@ class MainActivity : AppCompatActivity() {
             .setPositiveButton("Delete") { _, _ ->
                 val position = workouts.indexOfFirst { it.id == workout.id }
                 if (position >= 0) {
-                    workouts.removeAt(position)
-                    adapter.notifyItemRemoved(position)
                     repository.deleteWorkout(workout, session.userId) { success, message ->
-                        if (!success) Toast.makeText(this, message, Toast.LENGTH_LONG).show()
+                        if (success) {
+                            workouts.removeAt(position)
+                            adapter.notifyItemRemoved(position)
+                            updateSummary()
+                        } else Toast.makeText(this, message, Toast.LENGTH_LONG).show()
                     }
-                    updateSummary()
                 }
             }
             .show()

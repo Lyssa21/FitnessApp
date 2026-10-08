@@ -61,10 +61,6 @@ class LoginActivity : AppCompatActivity() {
             startActivity(Intent(this, RegisterActivity::class.java))
         }
 
-        findViewById<Button>(R.id.offlineButton).setOnClickListener {
-            session.saveLogin(0, "Beautiful")
-            openMainScreen()
-        }
     }
 
     private fun setLoading(loading: Boolean, button: Button, progressBar: ProgressBar) {
