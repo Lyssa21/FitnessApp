@@ -48,6 +48,11 @@ class TrackingService : Service() {
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+        if (intent?.action == ACTION_STOP) {
+            publishFinalMetrics()
+            stopSelf()
+            return START_NOT_STICKY
+        }
         activityType = intent?.getStringExtra("activity_type") ?: activityType
         startForeground(NOTIFICATION_ID, notification("Waiting for GPS route updates"))
         startedAt = System.currentTimeMillis()
@@ -80,7 +85,7 @@ class TrackingService : Service() {
             putExtra("steps", steps)
             putExtra("steps_available", true) // GPS-derived estimate, not the hardware pedometer.
             putExtra("minutes", minutes.toLong())
-            putExtra("calories", (elapsedSeconds / 60.0 * kcalPerMinute).roundToInt())
+            putExtra("calories", (elapsedSeconds / 60.0 * kcalPerMinute).roundToInt().coerceAtLeast(1))
             putExtra("route_points", routePoints.toString())
             putExtra("latitude", lat)
             putExtra("longitude", lng)
@@ -88,6 +93,25 @@ class TrackingService : Service() {
         getSystemService(NotificationManager::class.java).notify(
             NOTIFICATION_ID, notification("${"%.2f".format(distanceMeters / 1000.0)} km • $steps estimated steps")
         )
+    }
+
+    private fun publishFinalMetrics() {
+        val elapsedSeconds = ((System.currentTimeMillis() - startedAt) / 1000L).coerceAtLeast(1L)
+        val minutes = ((elapsedSeconds + 59L) / 60L).toInt().coerceAtLeast(1)
+        val strideMeters = if (activityType == "Running") 0.78f else 0.72f
+        val kcalPerMinute = if (activityType == "Walking") 4 else 9
+        val lastPoint = routePoints.optJSONObject(routePoints.length() - 1)
+        sendBroadcast(Intent(ACTION_UPDATE).setPackage(packageName).apply {
+            putExtra("distance_km", distanceMeters / 1000.0)
+            putExtra("steps", (distanceMeters / strideMeters).roundToInt())
+            putExtra("minutes", minutes.toLong())
+            putExtra("calories", (elapsedSeconds / 60.0 * kcalPerMinute).roundToInt().coerceAtLeast(1))
+            putExtra("route_points", routePoints.toString())
+            if (lastPoint != null) {
+                putExtra("latitude", lastPoint.optDouble("lat"))
+                putExtra("longitude", lastPoint.optDouble("lng"))
+            }
+        })
     }
 
     private fun notification(text: String): Notification = NotificationCompat.Builder(this, CHANNEL)
@@ -103,6 +127,7 @@ class TrackingService : Service() {
     companion object {
         const val ACTION_UPDATE = "com.example.fitnessapp.TRACKING_UPDATE"
         const val ACTION_STOPPED = "com.example.fitnessapp.TRACKING_STOPPED"
+        const val ACTION_STOP = "com.example.fitnessapp.TRACKING_STOP"
         private const val CHANNEL = "gps_tracking"
         private const val NOTIFICATION_ID = 42
     }

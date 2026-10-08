@@ -71,6 +71,8 @@ class MainActivity : BaseActivity() {
                 currentLongitude = intent.getDoubleExtra("longitude", 0.0)
                 findViewById<TextView>(R.id.trackingStatusTextView).text =
                     "Tracking: %.2f km • %d estimated GPS steps • %d min • %d kcal".format(trackingDistanceKm, trackingSteps, trackingMinutes, trackingCalories)
+            } else if (intent?.action == TrackingService.ACTION_STOPPED) {
+                prepareStoppedWorkout()
             }
         }
     }
@@ -164,10 +166,15 @@ class MainActivity : BaseActivity() {
     }
 
     private fun stopGpsTracking() {
-        stopService(Intent(this, TrackingService::class.java))
+        // Ask the service to send one final, non-zero duration/calorie snapshot before it stops.
+        startForegroundService(this, Intent(this, TrackingService::class.java).setAction(TrackingService.ACTION_STOP))
         findViewById<Button>(R.id.startTrackingButton).isEnabled = true
         findViewById<Button>(R.id.stopTrackingButton).isEnabled = false
-        if (trackingMinutes > 0) {
+        findViewById<TextView>(R.id.trackingStatusTextView).text = "Finalizing GPS workout…"
+    }
+
+    private fun prepareStoppedWorkout() {
+        if (trackingMinutes > 0 && trackingCalories > 0) {
             pendingTrackingWorkout = WorkoutFactory.create(trackingActivityType, duration = trackingMinutes.toInt(), calories = trackingCalories,
                 date = SimpleDateFormat("yyyy-MM-dd", Locale.US).format(Date()), distanceKm = trackingDistanceKm,
                 latitude = currentLatitude, longitude = currentLongitude, notes = "GPS tracked; estimated steps: $trackingSteps").apply {
@@ -176,7 +183,9 @@ class MainActivity : BaseActivity() {
                 }
             findViewById<Button>(R.id.saveTrackingButton).visibility = android.view.View.VISIBLE
             findViewById<TextView>(R.id.trackingStatusTextView).text = "Ready: %.2f km • %d estimated GPS steps • %d kcal. Tap Save progress.".format(trackingDistanceKm, trackingSteps, trackingCalories)
-        } else findViewById<TextView>(R.id.trackingStatusTextView).text = "No GPS fix received. Enable location and try outdoors."
+        } else {
+            findViewById<TextView>(R.id.trackingStatusTextView).text = "No GPS fix received. Enable location and try outdoors."
+        }
     }
 
     private fun saveTrackingProgress() {
