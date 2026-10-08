@@ -6,6 +6,7 @@ require_once __DIR__ . '/db_connect.php';
 
 require_post();
 
+$authenticatedUserId = require_auth_user($pdo);
 $userId = filter_var($_POST['user_id'] ?? null, FILTER_VALIDATE_INT);
 $activityType = post_value('activity_type');
 $duration = filter_var($_POST['duration'] ?? null, FILTER_VALIDATE_INT);
@@ -21,7 +22,7 @@ $reps = post_value('reps');
 $notes = post_value('notes');
 $allowedActivities = ['Running', 'Walking', 'Cycling', 'Weightlifting', 'Yoga'];
 
-if (!$userId || !in_array($activityType, $allowedActivities, true)) {
+if (!$userId || $userId !== $authenticatedUserId || !in_array($activityType, $allowedActivities, true)) {
     send_json(false, 'A valid user and activity type are required.', [], 422);
 }
 if (!$duration || $duration < 1 || !$calories || $calories < 1) {

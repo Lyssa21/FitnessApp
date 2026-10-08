@@ -6,8 +6,9 @@ require_once __DIR__ . '/db_connect.php';
 
 require_post();
 
+$authenticatedUserId = require_auth_user($pdo);
 $userId = filter_var($_POST['user_id'] ?? null, FILTER_VALIDATE_INT);
-if (!$userId) {
+if (!$userId || $userId !== $authenticatedUserId) {
     send_json(false, 'A valid user ID is required.', [], 422);
 }
 

@@ -6,9 +6,10 @@ require_once __DIR__ . '/db_connect.php';
 
 require_post();
 
+$authenticatedUserId = require_auth_user($pdo);
 $userId = filter_var($_POST['user_id'] ?? null, FILTER_VALIDATE_INT);
 $goal = filter_var($_POST['daily_calorie_goal'] ?? null, FILTER_VALIDATE_INT);
-if (!$userId || !$goal || $goal < 1 || $goal > 10000) {
+if (!$userId || $userId !== $authenticatedUserId || !$goal || $goal < 1 || $goal > 10000) {
     send_json(false, 'Enter a valid calorie goal between 1 and 10,000.', [], 422);
 }
 

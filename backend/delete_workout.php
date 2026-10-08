@@ -6,9 +6,10 @@ require_once __DIR__ . '/db_connect.php';
 
 require_post();
 
+$authenticatedUserId = require_auth_user($pdo);
 $userId = filter_var($_POST['user_id'] ?? null, FILTER_VALIDATE_INT);
 $workoutId = filter_var($_POST['workout_id'] ?? null, FILTER_VALIDATE_INT);
-if (!$userId || !$workoutId) {
+if (!$userId || $userId !== $authenticatedUserId || !$workoutId) {
     send_json(false, 'A valid user ID and workout ID are required.', [], 422);
 }
 

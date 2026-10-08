@@ -17,6 +17,7 @@ data class ApiResult(
 object ApiClient {
     // 10.0.2.2 points from the Android emulator to the computer running XAMPP.
     const val BASE_URL = "http://192.168.100.44/fitness_api/"
+    var authToken: String = ""
 
     private val executor = Executors.newSingleThreadExecutor()
     private val mainHandler = Handler(Looper.getMainLooper())
@@ -28,7 +29,8 @@ object ApiClient {
     ) {
         executor.execute {
             val result = try {
-                val body = parameters.entries.joinToString("&") { (key, value) ->
+                val requestParameters = parameters.toMutableMap().apply { if (authToken.isNotBlank()) put("token", authToken) }
+                val body = requestParameters.entries.joinToString("&") { (key, value) ->
                     "${encode(key)}=${encode(value)}"
                 }
                 val connection = (URL(BASE_URL + endpoint).openConnection() as HttpURLConnection).apply {

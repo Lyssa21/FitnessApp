@@ -29,6 +29,7 @@ import com.example.fitnessapp.data.WorkoutRepository
 import com.example.fitnessapp.model.Workout
 import com.example.fitnessapp.model.WorkoutFactory
 import com.example.fitnessapp.tracking.TrackingService
+import com.example.fitnessapp.network.ApiClient
 import com.google.android.material.floatingactionbutton.FloatingActionButton
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -77,6 +78,7 @@ class MainActivity : BaseActivity() {
         setContentView(R.layout.activity_main)
 
         session = SessionManager(this)
+        ApiClient.authToken = session.token
         repository = WorkoutRepository(this)
         workouts = repository.getWorkouts()
 

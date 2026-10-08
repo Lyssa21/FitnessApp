@@ -50,6 +50,7 @@ class LoginActivity : BaseActivity() {
                         result.data.optString("name", "Beautiful"),
                         result.data.optString("token")
                     )
+                    ApiClient.authToken = session.token
                     openMainScreen()
                 } else {
                     Toast.makeText(this, result.message, Toast.LENGTH_LONG).show()

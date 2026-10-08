@@ -28,5 +28,6 @@ class SessionManager(context: Context) {
 
     fun logout() {
         preferences.edit().clear().apply()
+        com.example.fitnessapp.network.ApiClient.authToken = ""
     }
 }
