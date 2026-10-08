@@ -62,9 +62,20 @@ class AnalyticsActivity : BaseActivity() {
 
         findViewById<TextView>(R.id.weeklyMinutesTextView).text = "$totalMinutes min"
         findViewById<TextView>(R.id.weeklyCaloriesTextView).text = "$totalCalories kcal"
-        findViewById<TextView>(R.id.activeDaysTextView).text = "$activeDays of 7 days"
+        findViewById<TextView>(R.id.activeDaysTextView).text = "$activeDays days"
+        val activeDaysLabel = when (selectedPeriod) {
+            0 -> "Active days / 7"
+            1 -> "Active days / ${now.getActualMaximum(Calendar.DAY_OF_MONTH)}"
+            else -> "Active days total"
+        }
+        findViewById<TextView>(R.id.activeDaysLabelTextView).text = activeDaysLabel
+        findViewById<TextView>(R.id.periodSubtitleTextView).text = when (selectedPeriod) {
+            0 -> "Your activity from the last seven days"
+            1 -> "Your activity so far this month"
+            else -> "Your activity across all recorded time"
+        }
         findViewById<TextView>(R.id.detailMetricsTextView).text =
-            "Workouts: ${periodWorkouts.size}\nDistance: %.2f km\nLifting volume: %.1f kg\nAverage cardio speed: %.2f km/h".format(
+            "${periodWorkouts.size} workouts     ·     %.2f km\n%.1f kg lifting volume     ·     %.2f km/h avg. speed".format(
                 totalDistance, liftingVolume,
                 if (totalMinutes > 0) totalDistance / (totalMinutes / 60.0) else 0.0
             )
