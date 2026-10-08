@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent" android:layout_height="match_parent"
+    android:gravity="center" android:orientation="vertical"
+    android:background="@color/cream_pink_background">
+    <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+        android:text="BlushFit" android:textColor="@color/primary_pink"
+        android:textSize="38sp" android:textStyle="bold" />
+    <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+        android:layout_marginTop="8dp" android:text="Your fitness, beautifully tracked"
+        android:textColor="@color/muted_pink_text" />
+</LinearLayout>

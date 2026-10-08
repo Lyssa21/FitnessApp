@@ -23,7 +23,12 @@ if (!$user || !password_verify($password, $user['password_hash'])) {
     send_json(false, 'Incorrect email or password.', [], 401);
 }
 
+$token = bin2hex(random_bytes(32));
+$tokenStatement = $pdo->prepare('UPDATE users SET session_token = :token WHERE id = :id');
+$tokenStatement->execute(['token' => $token, 'id' => $user['id']]);
+
 send_json(true, 'Login successful.', [
     'user_id' => (int)$user['id'],
     'name' => $user['name'],
+    'token' => $token,
 ]);

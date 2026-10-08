@@ -47,7 +47,8 @@ class LoginActivity : BaseActivity() {
                 if (result.success) {
                     session.saveLogin(
                         result.data.optInt("user_id"),
-                        result.data.optString("name", "Beautiful")
+                        result.data.optString("name", "Beautiful"),
+                        result.data.optString("token")
                     )
                     openMainScreen()
                 } else {
