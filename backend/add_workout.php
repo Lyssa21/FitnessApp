@@ -20,6 +20,7 @@ $weight = post_value('weight_kg');
 $sets = post_value('sets');
 $reps = post_value('reps');
 $notes = post_value('notes');
+$routePoints = post_value('route_points');
 $allowedActivities = ['Running', 'Walking', 'Cycling', 'Weightlifting', 'Yoga'];
 
 if (!$userId || $userId !== $authenticatedUserId || !in_array($activityType, $allowedActivities, true)) {
@@ -35,9 +36,9 @@ if (!$dateObject || $dateObject->format('Y-m-d') !== $workoutDate) {
 
 $statement = $pdo->prepare(
     'INSERT INTO workouts
-        (user_id, activity_type, duration, calories, workout_date, latitude, longitude, distance_km, exercise_name, weight_kg, sets, reps, notes)
+        (user_id, activity_type, duration, calories, workout_date, latitude, longitude, distance_km, exercise_name, weight_kg, sets, reps, notes, route_points)
      VALUES
-        (:user_id, :activity_type, :duration, :calories, :workout_date, :latitude, :longitude, :distance_km, :exercise_name, :weight_kg, :sets, :reps, :notes)'
+        (:user_id, :activity_type, :duration, :calories, :workout_date, :latitude, :longitude, :distance_km, :exercise_name, :weight_kg, :sets, :reps, :notes, :route_points)'
 );
 $statement->execute([
     'user_id' => $userId,
@@ -53,6 +54,7 @@ $statement->execute([
     'sets' => $sets === '' ? null : (int)$sets,
     'reps' => $reps === '' ? null : (int)$reps,
     'notes' => $notes === '' ? null : $notes,
+    'route_points' => $routePoints === '' ? null : $routePoints,
 ]);
 
 send_json(true, 'Workout saved successfully.', [

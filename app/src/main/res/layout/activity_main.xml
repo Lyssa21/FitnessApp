@@ -7,6 +7,10 @@
     android:layout_height="match_parent"
     android:background="@color/cream_pink_background">
 
+    <androidx.swiperefreshlayout.widget.SwipeRefreshLayout
+        android:id="@+id/workoutSwipeRefresh"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent">
     <androidx.core.widget.NestedScrollView
         android:layout_width="match_parent"
         android:layout_height="match_parent"
@@ -55,6 +59,14 @@
                     app:strokeColor="@color/primary_pink" />
 
                 <com.google.android.material.button.MaterialButton
+                    android:id="@+id/profileButton"
+                    style="@style/Widget.MaterialComponents.Button.TextButton"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Profile"
+                    android:textColor="@color/primary_pink" />
+
+                <com.google.android.material.button.MaterialButton
                     android:id="@+id/logoutButton"
                     style="@style/Widget.MaterialComponents.Button.TextButton"
                     android:layout_width="wrap_content"
@@ -87,6 +99,10 @@
                     android:layout_height="wrap_content" android:layout_weight="1"
                     android:text="Stop GPS" android:enabled="false" />
             </LinearLayout>
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/saveTrackingButton" android:layout_width="match_parent"
+                android:layout_height="wrap_content" android:text="Save progress to account"
+                android:visibility="gone" />
             <TextView android:id="@+id/trackingStatusTextView" android:layout_width="match_parent"
                 android:layout_height="wrap_content" android:layout_marginTop="4dp"
                 android:text="GPS tracking is stopped" android:textColor="@color/muted_pink_text" />
@@ -231,6 +247,7 @@
                 tools:listitem="@layout/item_workout" />
         </LinearLayout>
     </androidx.core.widget.NestedScrollView>
+    </androidx.swiperefreshlayout.widget.SwipeRefreshLayout>
 
     <com.google.android.material.floatingactionbutton.FloatingActionButton
         android:id="@+id/btnAddWorkout"

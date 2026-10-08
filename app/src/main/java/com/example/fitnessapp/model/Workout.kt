@@ -18,6 +18,7 @@ open class Workout(
     val reps: Int? = null,
     val notes: String? = null
 ) {
+    var routePointsJson: String? = null
     open val icon: String = "💪"
 
     fun toJson(): JSONObject = JSONObject().apply {
@@ -34,6 +35,7 @@ open class Workout(
         sets?.let { put("sets", it) }
         reps?.let { put("reps", it) }
         notes?.let { put("notes", it) }
+        routePointsJson?.let { put("route_points", it) }
     }
 }
 
@@ -136,7 +138,7 @@ object WorkoutFactory {
         , sets = json.optIntOrNull("sets")
         , reps = json.optIntOrNull("reps")
         , notes = json.optString("notes").ifBlank { null }
-    )
+    ).apply { routePointsJson = json.optString("route_points").takeIf { it.isNotBlank() && it != "null" } }
 
     private fun JSONObject.optDoubleOrNull(name: String): Double? {
         return if (has(name) && !isNull(name)) optDouble(name) else null

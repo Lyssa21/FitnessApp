@@ -24,6 +24,8 @@
         <activity
             android:name=".AnalyticsActivity"
             android:exported="false" />
+        <activity android:name=".ProfileActivity" android:exported="false" />
+        <activity android:name=".RouteMapActivity" android:exported="false" />
         <activity
             android:name=".LoginActivity"
             android:exported="false" />

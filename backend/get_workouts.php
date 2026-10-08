@@ -13,7 +13,7 @@ if (!$userId || $userId !== $authenticatedUserId) {
 }
 
 $statement = $pdo->prepare(
-    'SELECT id, activity_type, duration, calories, workout_date, latitude, longitude, distance_km, exercise_name, weight_kg, sets, reps, notes
+    'SELECT id, activity_type, duration, calories, workout_date, latitude, longitude, distance_km, exercise_name, weight_kg, sets, reps, notes, route_points
      FROM workouts
      WHERE user_id = :user_id
      ORDER BY workout_date DESC, id DESC'
@@ -35,6 +35,7 @@ $workouts = array_map(static function (array $row): array {
         'sets' => $row['sets'] === null ? null : (int)$row['sets'],
         'reps' => $row['reps'] === null ? null : (int)$row['reps'],
         'notes' => $row['notes'],
+        'route_points' => $row['route_points'],
     ];
 }, $statement->fetchAll());
 

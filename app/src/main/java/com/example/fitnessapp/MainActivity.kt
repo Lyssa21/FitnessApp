@@ -52,7 +52,10 @@ class MainActivity : BaseActivity() {
     private var trackingDistanceKm = 0.0
     private var trackingMinutes = 0L
     private var trackingSteps = 0
+    private var trackingCalories = 0
     private var trackingActivityType = "Running"
+    private var trackingRouteJson = "[]"
+    private var pendingTrackingWorkout: Workout? = null
 
     private val trackingReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: android.content.Context?, intent: Intent?) {
@@ -60,8 +63,12 @@ class MainActivity : BaseActivity() {
                 trackingDistanceKm = intent.getDoubleExtra("distance_km", 0.0)
                 trackingMinutes = intent.getLongExtra("minutes", 0L)
                 trackingSteps = intent.getIntExtra("steps", 0)
+                trackingCalories = intent.getIntExtra("calories", 0)
+                trackingRouteJson = intent.getStringExtra("route_points") ?: trackingRouteJson
+                currentLatitude = intent.getDoubleExtra("latitude", 0.0)
+                currentLongitude = intent.getDoubleExtra("longitude", 0.0)
                 findViewById<TextView>(R.id.trackingStatusTextView).text =
-                    "Tracking: %.2f km • %d steps • %d min".format(trackingDistanceKm, trackingSteps, trackingMinutes)
+                    "Tracking: %.2f km • %d steps • %d min • %d kcal".format(trackingDistanceKm, trackingSteps, trackingMinutes, trackingCalories)
             }
         }
     }
@@ -72,10 +79,14 @@ class MainActivity : BaseActivity() {
         if (granted) readCurrentLocation()
         else Toast.makeText(this, "Location permission was not granted", Toast.LENGTH_SHORT).show()
     }
+    private val notificationPermissionRequest = registerForActivityResult(ActivityResultContracts.RequestPermission()) { }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
+        if (android.os.Build.VERSION.SDK_INT >= 33 && ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
+            notificationPermissionRequest.launch(Manifest.permission.POST_NOTIFICATIONS)
+        }
 
         session = SessionManager(this)
         ApiClient.authToken = session.token
@@ -98,11 +109,22 @@ class MainActivity : BaseActivity() {
         findViewById<Button>(R.id.locationButton).setOnClickListener { requestLocation() }
         findViewById<Button>(R.id.startTrackingButton).setOnClickListener { startGpsTracking() }
         findViewById<Button>(R.id.stopTrackingButton).setOnClickListener { stopGpsTracking() }
+        findViewById<Button>(R.id.saveTrackingButton).setOnClickListener { saveTrackingProgress() }
         findViewById<Button>(R.id.editGoalButton).setOnClickListener { showGoalDialog() }
         findViewById<Button>(R.id.analyticsButton).setOnClickListener {
             startActivity(Intent(this, AnalyticsActivity::class.java))
         }
         findViewById<Button>(R.id.logoutButton).setOnClickListener { logOut() }
+        findViewById<Button>(R.id.profileButton).setOnClickListener { startActivity(Intent(this, ProfileActivity::class.java)) }
+        findViewById<androidx.swiperefreshlayout.widget.SwipeRefreshLayout>(R.id.workoutSwipeRefresh).setOnRefreshListener {
+            repository.loadFromServer(session.userId, { list ->
+                workouts.clear(); workouts.addAll(list); adapter.notifyDataSetChanged(); updateSummary()
+                findViewById<androidx.swiperefreshlayout.widget.SwipeRefreshLayout>(R.id.workoutSwipeRefresh).isRefreshing = false
+            }) { message ->
+                findViewById<androidx.swiperefreshlayout.widget.SwipeRefreshLayout>(R.id.workoutSwipeRefresh).isRefreshing = false
+                Toast.makeText(this, message, Toast.LENGTH_SHORT).show()
+            }
+        }
 
         repository.loadFromServer(session.userId, { serverWorkouts ->
             workouts.clear()
@@ -127,9 +149,10 @@ class MainActivity : BaseActivity() {
         if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
             requestLocation(); return
         }
-        trackingDistanceKm = 0.0; trackingMinutes = 0; trackingSteps = 0
+        trackingDistanceKm = 0.0; trackingMinutes = 0; trackingSteps = 0; trackingCalories = 0; trackingRouteJson = "[]"; pendingTrackingWorkout = null
         trackingActivityType = findViewById<Spinner>(R.id.trackingTypeSpinner).selectedItem.toString()
-        startForegroundService(this, Intent(this, TrackingService::class.java))
+        findViewById<Button>(R.id.saveTrackingButton).visibility = android.view.View.GONE
+        startForegroundService(this, Intent(this, TrackingService::class.java).putExtra("activity_type", trackingActivityType))
         findViewById<Button>(R.id.startTrackingButton).isEnabled = false
         findViewById<Button>(R.id.stopTrackingButton).isEnabled = true
         findViewById<TextView>(R.id.trackingStatusTextView).text = "Starting GPS tracking..."
@@ -139,16 +162,28 @@ class MainActivity : BaseActivity() {
         stopService(Intent(this, TrackingService::class.java))
         findViewById<Button>(R.id.startTrackingButton).isEnabled = true
         findViewById<Button>(R.id.stopTrackingButton).isEnabled = false
-        if (trackingMinutes > 0 && trackingDistanceKm > 0.0) {
-            val workout = WorkoutFactory.create(trackingActivityType, duration = trackingMinutes.toInt(), calories = (trackingMinutes * 8).toInt(),
+        if (trackingMinutes > 0) {
+            pendingTrackingWorkout = WorkoutFactory.create(trackingActivityType, duration = trackingMinutes.toInt(), calories = trackingCalories,
                 date = SimpleDateFormat("yyyy-MM-dd", Locale.US).format(Date()), distanceKm = trackingDistanceKm,
-                latitude = currentLatitude, longitude = currentLongitude, notes = "GPS tracked; estimated steps: $trackingSteps")
-            repository.addWorkout(workout, session.userId) { success, message ->
-                if (success) { workouts.add(0, workout); adapter.notifyItemInserted(0); updateSummary() }
-                Toast.makeText(this, message, Toast.LENGTH_SHORT).show()
+                latitude = currentLatitude, longitude = currentLongitude, notes = "GPS tracked; estimated steps: $trackingSteps").apply { routePointsJson = trackingRouteJson }
+            findViewById<Button>(R.id.saveTrackingButton).visibility = android.view.View.VISIBLE
+            findViewById<TextView>(R.id.trackingStatusTextView).text = "Ready: %.2f km • %d steps • %d kcal. Tap Save progress.".format(trackingDistanceKm, trackingSteps, trackingCalories)
+        } else findViewById<TextView>(R.id.trackingStatusTextView).text = "No GPS fix received. Enable location and try outdoors."
+    }
+
+    private fun saveTrackingProgress() {
+        val workout = pendingTrackingWorkout ?: return
+        val button = findViewById<Button>(R.id.saveTrackingButton)
+        button.isEnabled = false
+        repository.addWorkout(workout, session.userId) { success, message ->
+            if (success) {
+                workouts.add(0, workout); adapter.notifyItemInserted(0); updateSummary(); pendingTrackingWorkout = null
+                button.visibility = android.view.View.GONE
+                ProgressNotifier.show(this, "GPS workout saved", "%.2f km • %d estimated steps".format(trackingDistanceKm, trackingSteps))
             }
+            button.isEnabled = true
+            Toast.makeText(this, message, Toast.LENGTH_SHORT).show()
         }
-        findViewById<TextView>(R.id.trackingStatusTextView).text = "GPS tracking stopped"
     }
 
     private fun setupWorkoutList() {
@@ -158,7 +193,7 @@ class MainActivity : BaseActivity() {
         recyclerView.adapter = adapter
     }
 
-    private fun showAddWorkoutDialog() {
+    private fun showAddWorkoutDialog(editWorkout: Workout? = null) {
         val dialogView = layoutInflater.inflate(R.layout.dialog_add_workout, null)
         val activitySpinner = dialogView.findViewById<Spinner>(R.id.activitySpinner)
         val durationInput = dialogView.findViewById<EditText>(R.id.durationEditText)
@@ -187,6 +222,20 @@ class MainActivity : BaseActivity() {
             android.R.layout.simple_spinner_dropdown_item,
             activityTypes
         )
+        editWorkout?.let { existing ->
+            val index = activityTypes.indexOf(existing.activityName)
+            if (index >= 0) activitySpinner.setSelection(index)
+            durationInput.setText(existing.durationMinutes.toString())
+            caloriesInput.setText(existing.calories.toString())
+            distanceInput.setText(existing.distanceKm?.toString().orEmpty())
+            exerciseInput.setText(existing.exerciseName.orEmpty())
+            weightInput.setText(existing.weightKg?.toString().orEmpty())
+            setsInput.setText(existing.sets?.toString().orEmpty())
+            repsInput.setText(existing.reps?.toString().orEmpty())
+            notesInput.setText(existing.notes.orEmpty())
+            selectedDate = existing.date
+            dateButton.text = "Date: $selectedDate"
+        }
         dialogLocation.text = if (currentLatitude != null && currentLongitude != null) {
             "Location: %.4f, %.4f".format(currentLatitude, currentLongitude)
         } else {
@@ -194,10 +243,10 @@ class MainActivity : BaseActivity() {
         }
 
         val dialog = AlertDialog.Builder(this)
-            .setTitle("Add a workout")
+            .setTitle(if (editWorkout == null) "Add a workout" else "Edit workout")
             .setView(dialogView)
             .setNegativeButton("Cancel", null)
-            .setPositiveButton("Save", null)
+            .setPositiveButton(if (editWorkout == null) "Save" else "Update", null)
             .create()
 
         dialog.setOnShowListener {
@@ -237,11 +286,23 @@ class MainActivity : BaseActivity() {
                     , reps = reps
                     , notes = notesInput.text.toString().trim().ifBlank { null }
                 )
-                repository.addWorkout(workout, session.userId) { success, message ->
+                val save: ((Boolean, String) -> Unit) -> Unit = if (editWorkout == null) {
+                    { callback -> repository.addWorkout(workout, session.userId, callback) }
+                } else {
+                    workout.id = editWorkout.id
+                    { callback -> repository.updateWorkout(workout, session.userId, callback) }
+                }
+                save { success, message ->
                     if (success) {
-                        workouts.add(0, workout)
-                        adapter.notifyItemInserted(0)
+                        if (editWorkout == null) workouts.add(0, workout)
+                        else {
+                            val editIndex = workouts.indexOfFirst { it.id == editWorkout.id }
+                            if (editIndex >= 0) workouts[editIndex] = workout
+                        }
+                        adapter.notifyDataSetChanged()
                         updateSummary()
+                        ProgressNotifier.show(this, if (editWorkout == null) "Workout saved" else "Workout updated", "Your ${workout.activityName.lowercase()} progress was saved online.")
+                        notifyGoalAchievement()
                     }
                     Toast.makeText(this, message, Toast.LENGTH_SHORT).show()
                 }
@@ -277,33 +338,42 @@ class MainActivity : BaseActivity() {
         AlertDialog.Builder(this)
             .setTitle("${workout.activityName} details")
             .setMessage("Date: ${workout.date}\nDuration: ${workout.durationMinutes} min\nDistance: ${"%.2f".format(workout.distanceKm ?: 0.0)} km\nAverage speed: ${"%.2f".format(speed)} km/h\nCalories: ${workout.calories} kcal\nLifting volume: ${"%.1f".format(volume)} kg\nNotes: ${workout.notes ?: "None"}")
+            .setNeutralButton("Edit") { _, _ -> showAddWorkoutDialog(workout) }
+            .apply { if (!workout.routePointsJson.isNullOrBlank()) setNegativeButton("View route") { _, _ -> startActivity(Intent(this@MainActivity, RouteMapActivity::class.java).putExtra(RouteMapActivity.EXTRA_POINTS, workout.routePointsJson)) } }
             .setPositiveButton("Close", null)
             .show()
     }
 
     private fun showGoalDialog() {
-        val input = EditText(this).apply {
-            inputType = android.text.InputType.TYPE_CLASS_NUMBER
-            setText(repository.getDailyGoal().toString())
-            selectAll()
+        val container = android.widget.LinearLayout(this).apply { orientation = android.widget.LinearLayout.VERTICAL; setPadding(36, 8, 36, 0) }
+        val typePicker = Spinner(this).apply { adapter = ArrayAdapter(this@MainActivity, android.R.layout.simple_spinner_dropdown_item, listOf("Daily calorie goal", "Weekly distance goal")) }
+        typePicker.setSelection(if (repository.goalType == "distance") 1 else 0)
+        val input = EditText(this).apply { inputType = android.text.InputType.TYPE_CLASS_NUMBER or android.text.InputType.TYPE_NUMBER_FLAG_DECIMAL; setText(repository.goalTarget.toString()); hint = "Target value" }
+        val deadlineButton = Button(this).apply { text = repository.goalDeadline?.let { "Deadline: $it" } ?: "Optional deadline" }
+        var deadline: String? = repository.goalDeadline
+        deadlineButton.setOnClickListener {
+            val c = java.util.Calendar.getInstance()
+            DatePickerDialog(this, { _, y, m, d -> deadline = "%04d-%02d-%02d".format(y, m + 1, d); deadlineButton.text = "Deadline: $deadline" }, c.get(java.util.Calendar.YEAR), c.get(java.util.Calendar.MONTH), c.get(java.util.Calendar.DAY_OF_MONTH)).show()
         }
+        container.addView(typePicker); container.addView(input); container.addView(deadlineButton)
         val dialog = AlertDialog.Builder(this)
-            .setTitle("Daily calorie goal")
-            .setView(input)
+            .setTitle("Fitness goal")
+            .setView(container)
             .setNegativeButton("Cancel", null)
             .setPositiveButton("Save", null)
             .create()
 
         dialog.setOnShowListener {
             dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener {
-                val goal = input.text.toString().toIntOrNull()
-                if (goal == null || goal <= 0) {
-                    input.error = "Enter a goal greater than zero"
+                val target = input.text.toString().toDoubleOrNull()
+                if (target == null || target <= 0) {
+                    input.error = "Enter a target greater than zero"
                 } else {
-                    repository.saveDailyGoal(goal, session.userId) { _, message ->
+                    val type = if (typePicker.selectedItemPosition == 1) "distance" else "calories"
+                    repository.saveStructuredGoal(type, target, deadline, session.userId) { success, message ->
+                        if (success) updateSummary()
                         Toast.makeText(this, message, Toast.LENGTH_SHORT).show()
                     }
-                    updateSummary()
                     dialog.dismiss()
                 }
             }
@@ -318,13 +388,33 @@ class MainActivity : BaseActivity() {
         val estimatedSteps = todaysWorkouts
             .filter { it.activityName == "Running" }
             .sumOf { it.durationMinutes * 100 }
-        val goal = repository.getDailyGoal()
+        val goal = repository.goalTarget
+        val progressValue = if (repository.goalType == "distance") {
+            val weekStart = java.util.Calendar.getInstance().apply { add(java.util.Calendar.DAY_OF_YEAR, -6) }.time
+            workouts.filter { it.activityName in listOf("Running", "Walking", "Cycling") && runCatching { SimpleDateFormat("yyyy-MM-dd", Locale.US).parse(it.date) }.getOrNull()?.after(weekStart) == true }.sumOf { it.distanceKm ?: 0.0 }
+        } else calories.toDouble()
 
         stepsText.text = "%,d".format(estimatedSteps)
         caloriesText.text = "$calories kcal"
-        goalProgress.max = goal
-        goalProgress.progress = calories.coerceAtMost(goal)
-        goalText.text = "Daily goal: $goal kcal • ${((calories * 100.0 / goal).toInt())}% complete"
+        goalProgress.max = 100
+        val percent = if (goal > 0) (progressValue * 100.0 / goal).toInt().coerceIn(0, 100) else 0
+        goalProgress.progress = percent
+        val unit = if (repository.goalType == "distance") "km this week" else "kcal today"
+        goalText.text = "Goal: ${"%.1f".format(goal)} $unit • $percent% complete${repository.goalDeadline?.let { " • due $it" } ?: ""}"
+    }
+
+    private fun notifyGoalAchievement() {
+        val target = repository.goalTarget
+        val progress = if (repository.goalType == "distance") {
+            val weekStart = java.util.Calendar.getInstance().apply { add(java.util.Calendar.DAY_OF_YEAR, -6) }.time
+            workouts.filter { it.activityName in listOf("Running", "Walking", "Cycling") && runCatching { SimpleDateFormat("yyyy-MM-dd", Locale.US).parse(it.date) }.getOrNull()?.after(weekStart) == true }.sumOf { it.distanceKm ?: 0.0 }
+        } else {
+            val today = SimpleDateFormat("yyyy-MM-dd", Locale.US).format(Date())
+            workouts.filter { it.date == today }.sumOf { it.calories }.toDouble()
+        }
+        if (target > 0 && progress >= target) {
+            ProgressNotifier.show(this, "Fitness goal reached!", "You reached your ${repository.goalType} target.")
+        }
     }
 
     private fun requestLocation() {

@@ -18,10 +18,16 @@ class LoginActivity : BaseActivity() {
         session = SessionManager(this)
 
         if (session.isLoggedIn) {
-            openMainScreen()
+            ApiClient.authToken = session.token
+            ApiClient.post("check_session.php", emptyMap()) { result ->
+                if (result.success) openMainScreen() else { session.logout(); showLogin() }
+            }
             return
         }
+        showLogin()
+    }
 
+    private fun showLogin() {
         setContentView(R.layout.activity_login)
 
         val emailInput = findViewById<EditText>(R.id.emailEditText)
@@ -48,7 +54,7 @@ class LoginActivity : BaseActivity() {
                     session.saveLogin(
                         result.data.optInt("user_id"),
                         result.data.optString("name", "Beautiful"),
-                        result.data.optString("token")
+                        result.data.optString("token"), email
                     )
                     ApiClient.authToken = session.token
                     openMainScreen()

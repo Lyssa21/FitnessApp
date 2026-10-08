@@ -13,11 +13,14 @@ if (!$userId || $userId !== $authenticatedUserId) {
 }
 
 $statement = $pdo->prepare(
-    'SELECT daily_calorie_goal FROM fitness_goals WHERE user_id = :user_id LIMIT 1'
+    'SELECT daily_calorie_goal, goal_type, target_value, deadline_date FROM fitness_goals WHERE user_id = :user_id LIMIT 1'
 );
 $statement->execute(['user_id' => $userId]);
-$goal = $statement->fetchColumn();
+$goal = $statement->fetch();
 
 send_json(true, 'Goal loaded.', [
-    'daily_calorie_goal' => $goal === false ? 500 : (int)$goal,
+    'daily_calorie_goal' => $goal === false ? 500 : (int)$goal['daily_calorie_goal'],
+    'goal_type' => $goal === false ? 'calories' : $goal['goal_type'],
+    'target_value' => $goal === false ? 500 : (float)$goal['target_value'],
+    'deadline_date' => $goal === false ? null : $goal['deadline_date'],
 ]);

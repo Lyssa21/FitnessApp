@@ -17,12 +17,16 @@ class SessionManager(context: Context) {
     val token: String
         get() = preferences.getString("session_token", "") ?: ""
 
-    fun saveLogin(userId: Int, name: String, token: String = "") {
+    val email: String
+        get() = preferences.getString("user_email", "") ?: ""
+
+    fun saveLogin(userId: Int, name: String, token: String = "", email: String = "") {
         preferences.edit()
             .putBoolean("is_logged_in", true)
             .putInt("user_id", userId)
             .putString("user_name", name)
             .putString("session_token", token)
+            .putString("user_email", email)
             .apply()
     }
 
