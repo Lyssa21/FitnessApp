@@ -16,7 +16,7 @@ data class ApiResult(
 
 object ApiClient {
     // 10.0.2.2 points from the Android emulator to the computer running XAMPP.
-    const val BASE_URL = "http://192.168.100.94/fitness_api/"
+    const val BASE_URL = "http://192.168.100.44/fitness_api/"
     var authToken: String = ""
 
     private val executor = Executors.newSingleThreadExecutor()
@@ -50,6 +50,9 @@ object ApiClient {
                 val responseText = stream?.bufferedReader()?.use { it.readText() }.orEmpty()
                 connection.disconnect()
 
+                if (responseText.isBlank()) {
+                    throw IllegalStateException("HTTP ${connection.responseCode} returned an empty response")
+                }
                 val json = JSONObject(responseText)
                 ApiResult(
                     success = json.optBoolean("success"),
@@ -57,7 +60,7 @@ object ApiClient {
                     data = json
                 )
             } catch (error: Exception) {
-                ApiResult(false, "Cannot reach the server. Check XAMPP and the API URL.")
+                ApiResult(false, "API error: ${error.message ?: error.javaClass.simpleName}")
             }
 
             mainHandler.post { callback(result) }
