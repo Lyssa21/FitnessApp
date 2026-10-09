@@ -80,12 +80,16 @@ class TrackingService : Service() {
         val strideMeters = when (activityType) { "Walking" -> 0.72f; "Running" -> 0.78f; else -> 0.72f }
         val calories = estimateDistanceCalories(distanceMeters / 1000.0)
         val steps = (distanceMeters / strideMeters).roundToInt()
+        val speedKmh = if (elapsedSeconds > 0) distanceMeters / elapsedSeconds * 3.6 else 0.0
+        val paceMinKm = if (speedKmh > 0.1) 60.0 / speedKmh else 0.0
         sendBroadcast(Intent(ACTION_UPDATE).setPackage(packageName).apply {
             putExtra("distance_km", distanceMeters / 1000.0)
             putExtra("steps", steps)
             putExtra("steps_available", true) // GPS-derived estimate, not the hardware pedometer.
             putExtra("minutes", minutes.toLong())
             putExtra("calories", calories)
+            putExtra("speed_kmh", speedKmh)
+            putExtra("pace_min_km", paceMinKm)
             putExtra("route_points", routePoints.toString())
             putExtra("latitude", lat)
             putExtra("longitude", lng)

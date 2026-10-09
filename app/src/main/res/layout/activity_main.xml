@@ -109,6 +109,12 @@
                 android:textStyle="bold"
                 android:visibility="gone"
                 app:cornerRadius="14dp" />
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/liveRouteButton" android:layout_width="match_parent"
+                android:layout_height="wrap_content" android:layout_marginTop="6dp"
+                android:text="VIEW LIVE ROUTE" android:visibility="gone"
+                style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+                android:textColor="@color/primary_pink" app:strokeColor="@color/primary_pink" />
 
             <androidx.cardview.widget.CardView
                 android:layout_width="match_parent"

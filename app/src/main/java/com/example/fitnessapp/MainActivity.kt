@@ -57,6 +57,8 @@ class MainActivity : BaseActivity() {
     private var trackingCalories = 0
     private var trackingActivityType = "Running"
     private var trackingRouteJson = "[]"
+    private var trackingSpeedKmh = 0.0
+    private var trackingPaceMinKm = 0.0
     private var pendingTrackingWorkout: Workout? = null
     private var pendingGpsStart = false
 
@@ -68,6 +70,8 @@ class MainActivity : BaseActivity() {
                 trackingSteps = intent.getIntExtra("steps", 0)
                 trackingCalories = intent.getIntExtra("calories", 0)
                 trackingRouteJson = intent.getStringExtra("route_points") ?: trackingRouteJson
+                trackingSpeedKmh = intent.getDoubleExtra("speed_kmh", 0.0)
+                trackingPaceMinKm = intent.getDoubleExtra("pace_min_km", 0.0)
                 currentLatitude = intent.getDoubleExtra("latitude", 0.0)
                 currentLongitude = intent.getDoubleExtra("longitude", 0.0)
                 findViewById<TextView>(R.id.trackingStatusTextView).text =
@@ -116,6 +120,9 @@ class MainActivity : BaseActivity() {
         findViewById<Button>(R.id.startTrackingButton).setOnClickListener { startGpsTracking() }
         findViewById<Button>(R.id.stopTrackingButton).setOnClickListener { stopGpsTracking() }
         findViewById<Button>(R.id.saveTrackingButton).setOnClickListener { saveTrackingProgress() }
+        findViewById<Button>(R.id.liveRouteButton).setOnClickListener {
+            startActivity(Intent(this, RouteMapActivity::class.java).putExtra(RouteMapActivity.EXTRA_LIVE, true))
+        }
         findViewById<Button>(R.id.editGoalButton).setOnClickListener { showGoalDialog() }
         findViewById<Button>(R.id.analyticsButton).setOnClickListener {
             startActivity(Intent(this, AnalyticsActivity::class.java))
@@ -166,6 +173,7 @@ class MainActivity : BaseActivity() {
         startForegroundService(this, Intent(this, TrackingService::class.java).putExtra("activity_type", trackingActivityType))
         findViewById<Button>(R.id.startTrackingButton).isEnabled = false
         findViewById<Button>(R.id.stopTrackingButton).isEnabled = true
+        findViewById<Button>(R.id.liveRouteButton).visibility = View.VISIBLE
         findViewById<TextView>(R.id.trackingStatusTextView).text = "Starting GPS tracking..."
     }
 
@@ -174,6 +182,7 @@ class MainActivity : BaseActivity() {
         startForegroundService(this, Intent(this, TrackingService::class.java).setAction(TrackingService.ACTION_STOP))
         findViewById<Button>(R.id.startTrackingButton).isEnabled = true
         findViewById<Button>(R.id.stopTrackingButton).isEnabled = false
+        findViewById<Button>(R.id.liveRouteButton).visibility = View.GONE
         findViewById<TextView>(R.id.trackingStatusTextView).text = "Finalizing GPS workout…"
     }
 
