@@ -1,5 +1,6 @@
 package com.example.fitnessapp
 
+import android.animation.ValueAnimator
 import android.Manifest
 import android.content.BroadcastReceiver
 import android.content.Context
@@ -49,6 +50,8 @@ class RouteMapActivity : BaseActivity() {
     private var styleReady = false
     private var streetProblem: String? = null
     private var waitedForGps = false
+    private var currentPinPosition: LatLng? = null
+    private var pinAnimator: ValueAnimator? = null
     private val live by lazy { intent.getBooleanExtra(EXTRA_LIVE, false) }
 
     private val receiver = object : BroadcastReceiver() {
@@ -119,7 +122,7 @@ class RouteMapActivity : BaseActivity() {
                     lineColor(Color.rgb(255, 101, 132)), lineWidth(6f), lineOpacity(0.9f)
                 ))
                 addPinLayer(style, START_SOURCE, Color.rgb(52, 169, 110))
-                addPinLayer(style, CURRENT_SOURCE, Color.rgb(255, 101, 132))
+                addPinLayer(style, CURRENT_SOURCE, Color.rgb(255, 101, 132), 12f)
                 addPinLayer(style, FINISH_SOURCE, Color.rgb(92, 52, 64))
                 styleReady = true
                 if (streetProblem?.startsWith("Street map timed out") == true) streetProblem = null
@@ -145,10 +148,10 @@ class RouteMapActivity : BaseActivity() {
         }, 20_000L)
     }
 
-    private fun addPinLayer(style: org.maplibre.android.maps.Style, sourceId: String, color: Int) {
+    private fun addPinLayer(style: org.maplibre.android.maps.Style, sourceId: String, color: Int, radius: Float = 9f) {
         style.addSource(GeoJsonSource(sourceId, emptyFeatures()))
         style.addLayer(CircleLayer("$sourceId-layer", sourceId).withProperties(
-            circleColor(color), circleRadius(9f), circleStrokeColor(Color.WHITE), circleStrokeWidth(3f)
+            circleColor(color), circleRadius(radius), circleStrokeColor(Color.WHITE), circleStrokeWidth(3f)
         ))
     }
 
@@ -166,7 +169,7 @@ class RouteMapActivity : BaseActivity() {
         ))
         style.getSourceAs<GeoJsonSource>(ROUTE_SOURCE)?.setGeoJson(line)
         style.getSourceAs<GeoJsonSource>(START_SOURCE)?.setGeoJson(pointFeatures(points.firstOrNull()))
-        style.getSourceAs<GeoJsonSource>(CURRENT_SOURCE)?.setGeoJson(pointFeatures(if (finished) null else points.lastOrNull()))
+        style.getSourceAs<GeoJsonSource>(CURRENT_SOURCE)?.setGeoJson(pointFeatures(if (finished) null else currentPinPosition ?: points.lastOrNull()))
         style.getSourceAs<GeoJsonSource>(FINISH_SOURCE)?.setGeoJson(pointFeatures(if (finished) points.lastOrNull() else null))
         if (follow) points.lastOrNull()?.let { readyMap.animateCamera(CameraUpdateFactory.newLatLngZoom(it, 16.0)) }
     }
@@ -180,13 +183,38 @@ class RouteMapActivity : BaseActivity() {
 
     private fun addPoint(point: LatLng, follow: Boolean) {
         if (finished || points.lastOrNull()?.let { it.latitude == point.latitude && it.longitude == point.longitude } == true) return
+        val previousPin = currentPinPosition ?: points.lastOrNull()
         points.add(point)
-        refreshRoute(follow)
+        if (follow && previousPin != null && styleReady) {
+            refreshRoute(false)
+            animateCurrentPin(previousPin, point)
+            map?.animateCamera(CameraUpdateFactory.newLatLngZoom(point, 16.0), 900)
+        } else {
+            currentPinPosition = point
+            refreshRoute(follow)
+        }
         updateStatus()
+    }
+
+    private fun animateCurrentPin(from: LatLng, to: LatLng) {
+        pinAnimator?.cancel()
+        pinAnimator = ValueAnimator.ofFloat(0f, 1f).apply {
+            duration = 900L
+            addUpdateListener { animation ->
+                val fraction = animation.animatedFraction.toDouble()
+                currentPinPosition = LatLng(
+                    from.latitude + (to.latitude - from.latitude) * fraction,
+                    from.longitude + (to.longitude - from.longitude) * fraction
+                )
+                map?.style?.getSourceAs<GeoJsonSource>(CURRENT_SOURCE)?.setGeoJson(pointFeatures(currentPinPosition))
+            }
+            start()
+        }
     }
 
     private fun finishRoute() {
         if (finished) return
+        pinAnimator?.cancel()
         finished = true
         refreshRoute(false)
         updateStatus()
@@ -251,11 +279,11 @@ class RouteMapActivity : BaseActivity() {
 
     override fun onStart() { super.onStart(); mapView.onStart() }
     override fun onResume() { super.onResume(); mapView.onResume() }
-    override fun onPause() { mapView.onPause(); super.onPause() }
+    override fun onPause() { pinAnimator?.cancel(); mapView.onPause(); super.onPause() }
     override fun onStop() { mapView.onStop(); super.onStop() }
     override fun onLowMemory() { super.onLowMemory(); mapView.onLowMemory() }
     override fun onSaveInstanceState(outState: Bundle) { super.onSaveInstanceState(outState); mapView.onSaveInstanceState(outState) }
-    override fun onDestroy() { if (live) unregisterReceiver(receiver); mapView.onDestroy(); super.onDestroy() }
+    override fun onDestroy() { pinAnimator?.cancel(); if (live) unregisterReceiver(receiver); mapView.onDestroy(); super.onDestroy() }
 
     companion object {
         const val EXTRA_POINTS = "route_points"
