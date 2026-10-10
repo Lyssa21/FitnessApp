@@ -25,6 +25,7 @@
             android:name=".AnalyticsActivity"
             android:exported="false" />
         <activity android:name=".ProfileActivity" android:exported="false" />
+        <activity android:name=".HistoryActivity" android:exported="false" />
         <activity android:name=".RouteMapActivity" android:exported="false" />
         <activity
             android:name=".LoginActivity"

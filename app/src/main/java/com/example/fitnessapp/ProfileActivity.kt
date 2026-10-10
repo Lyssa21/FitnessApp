@@ -6,9 +6,11 @@ import android.os.Bundle
 import android.widget.EditText
 import android.widget.TextView
 import android.widget.Toast
+import android.widget.LinearLayout
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatDelegate
 import com.example.fitnessapp.data.SessionManager
+import com.example.fitnessapp.network.ApiClient
 
 class ProfileActivity : BaseActivity() {
     private lateinit var session: SessionManager
@@ -60,12 +62,22 @@ class ProfileActivity : BaseActivity() {
     }
 
     private fun editProfile() {
-        val input = EditText(this).apply { setText(session.userName); hint = "Your name"; setPadding(48, 8, 48, 0) }
-        AlertDialog.Builder(this).setTitle("Edit profile information").setView(input)
-            .setNegativeButton("Cancel", null).setPositiveButton("Save") { _, _ ->
-                val name = input.text.toString().trim()
-                if (name.isNotBlank()) { session.updateName(name); refreshHeader(); Toast.makeText(this, "Profile updated", Toast.LENGTH_SHORT).show() }
-            }.show()
+        val box = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; setPadding(42, 0, 42, 0) }
+        val name = EditText(this).apply { setText(session.userName); hint = "Name" }
+        val email = EditText(this).apply { setText(session.email); hint = "Email"; inputType = android.text.InputType.TYPE_TEXT_VARIATION_EMAIL_ADDRESS }
+        box.addView(name); box.addView(email)
+        AlertDialog.Builder(this).setTitle("Edit profile information").setView(box)
+            .setNegativeButton("Cancel", null).setPositiveButton("Save", null).create().also { dialog ->
+                dialog.setOnShowListener { dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener {
+                    val newName = name.text.toString().trim(); val newEmail = email.text.toString().trim()
+                    if (newName.isBlank() || !android.util.Patterns.EMAIL_ADDRESS.matcher(newEmail).matches()) { Toast.makeText(this, "Enter a valid name and email", Toast.LENGTH_SHORT).show(); return@setOnClickListener }
+                    ApiClient.post("update_profile.php", mapOf("name" to newName, "email" to newEmail)) { result ->
+                        if (result.success) { session.updateProfile(newName, newEmail); findViewById<TextView>(R.id.profileEmailTextView).text = newEmail; refreshHeader(); dialog.dismiss() }
+                        Toast.makeText(this, result.message, Toast.LENGTH_SHORT).show()
+                    }
+                } }
+                dialog.show()
+            }
     }
 
     private fun toggleNotifications() {

@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android" android:layout_width="match_parent" android:layout_height="match_parent" android:orientation="vertical" android:background="@color/cream_pink_background" android:padding="22dp">
+    <TextView android:id="@+id/historyBackButton" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="‹  Back" android:textColor="@color/primary_pink" android:textSize="16sp" android:textStyle="bold" />
+    <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="22dp" android:text="Workout history" android:textColor="@color/dark_pink_text" android:textSize="30sp" android:textStyle="bold" />
+    <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="5dp" android:text="Every activity you have completed" android:textColor="@color/muted_pink_text" android:textSize="15sp" />
+    <TextView android:id="@+id/historyEmptyTextView" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="40dp" android:gravity="center" android:text="No workouts saved yet." android:textColor="@color/muted_pink_text" android:textSize="16sp" android:visibility="gone" />
+    <androidx.recyclerview.widget.RecyclerView android:id="@+id/historyRecyclerView" android:layout_width="match_parent" android:layout_height="0dp" android:layout_marginTop="20dp" android:layout_weight="1" />
+</LinearLayout>

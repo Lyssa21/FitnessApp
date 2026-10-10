@@ -16,7 +16,9 @@
         android:layout_height="match_parent"
         android:clipToPadding="false"
         android:fillViewport="true"
-        android:padding="20dp"
+        android:paddingStart="20dp"
+        android:paddingEnd="20dp"
+        android:paddingTop="38dp"
         android:paddingBottom="96dp">
 
         <LinearLayout
@@ -91,15 +93,15 @@
                 android:layout_width="match_parent" android:layout_height="wrap_content"
                 android:layout_marginTop="8dp" android:orientation="horizontal">
                 <Spinner android:id="@+id/trackingTypeSpinner" android:layout_width="0dp"
-                    android:layout_height="wrap_content" android:layout_weight="1" />
+                    android:layout_height="56dp" android:layout_weight="1" android:background="@drawable/activity_pill" />
                 <com.google.android.material.button.MaterialButton
                     android:id="@+id/startTrackingButton" android:layout_width="0dp"
-                    android:layout_height="wrap_content" android:layout_weight="1"
-                    android:text="Start GPS" />
+                    android:layout_height="56dp" android:layout_weight="1"
+                    android:text="START GPS" android:textColor="@color/white" android:backgroundTint="@color/primary_pink" />
                 <com.google.android.material.button.MaterialButton
                     android:id="@+id/stopTrackingButton" android:layout_width="0dp"
-                    android:layout_height="wrap_content" android:layout_weight="1"
-                    android:text="Stop GPS" android:enabled="false" />
+                    android:layout_height="56dp" android:layout_weight="1"
+                    android:text="STOP GPS" android:textColor="@color/white" android:backgroundTint="@color/soft_rose_pink" android:enabled="false" />
             </LinearLayout>
             <TextView android:id="@+id/trackingStatusTextView" android:layout_width="match_parent"
                 android:layout_height="wrap_content" android:layout_marginTop="4dp"
@@ -243,10 +245,12 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="28dp"
+                android:id="@+id/todaysWorkoutsTitle"
                 android:text="Today’s workouts"
                 android:textColor="@color/dark_pink_text"
                 android:textSize="20sp"
-                android:textStyle="bold" />
+                android:textStyle="bold"
+                android:visibility="gone" />
 
             <androidx.recyclerview.widget.RecyclerView
                 android:id="@+id/workoutRecyclerView"
@@ -255,6 +259,7 @@
                 android:layout_marginTop="12dp"
                 android:nestedScrollingEnabled="false"
                 android:overScrollMode="never"
+                android:visibility="gone"
                 tools:listitem="@layout/item_workout" />
         </LinearLayout>
     </androidx.core.widget.NestedScrollView>
@@ -296,6 +301,10 @@
                 android:id="@+id/bottomAnalyticsButton"
                 style="@style/BottomNavButton"
                 android:text="◉\nAnalytics" />
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/bottomHistoryButton"
+                style="@style/BottomNavButton"
+                android:text="▤\nHistory" />
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/bottomProfileButton"
                 style="@style/BottomNavButton"

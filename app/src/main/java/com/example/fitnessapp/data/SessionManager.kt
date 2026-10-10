@@ -38,4 +38,8 @@ class SessionManager(context: Context) {
     fun updateName(name: String) {
         preferences.edit().putString("user_name", name).apply()
     }
+
+    fun updateProfile(name: String, email: String) {
+        preferences.edit().putString("user_name", name).putString("user_email", email).apply()
+    }
 }

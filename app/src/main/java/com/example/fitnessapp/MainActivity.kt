@@ -110,7 +110,12 @@ class MainActivity : BaseActivity() {
         goalProgress = findViewById(R.id.calorieGoalProgressBar)
 
         setupWorkoutList()
-        findViewById<Spinner>(R.id.trackingTypeSpinner).adapter = ArrayAdapter(this, android.R.layout.simple_spinner_dropdown_item, listOf("Running", "Walking"))
+        val trackingActivities = listOf("Running", "Walking", "Cycling")
+        findViewById<Spinner>(R.id.trackingTypeSpinner).adapter = object : ArrayAdapter<String>(this, android.R.layout.simple_spinner_dropdown_item, trackingActivities) {
+            override fun getView(position: Int, convertView: View?, parent: android.view.ViewGroup): View = TextView(this@MainActivity).apply {
+                text = trackingActivities[position]; textSize = 15f; setTextColor(ContextCompat.getColor(this@MainActivity, R.color.dark_pink_text)); gravity = android.view.Gravity.CENTER_VERTICAL; setPadding(12, 0, 4, 0)
+            }
+        }
         updateSummary()
 
         findViewById<FloatingActionButton>(R.id.btnAddWorkout).setOnClickListener {
@@ -131,6 +136,7 @@ class MainActivity : BaseActivity() {
         }
         findViewById<Button>(R.id.bottomDashboardButton).setOnClickListener { findViewById<androidx.swiperefreshlayout.widget.SwipeRefreshLayout>(R.id.workoutSwipeRefresh).scrollTo(0, 0) }
         findViewById<Button>(R.id.bottomAnalyticsButton).setOnClickListener { startActivity(Intent(this, AnalyticsActivity::class.java)) }
+        findViewById<Button>(R.id.bottomHistoryButton).setOnClickListener { startActivity(Intent(this, HistoryActivity::class.java)) }
         findViewById<Button>(R.id.bottomProfileButton).setOnClickListener { startActivity(Intent(this, ProfileActivity::class.java)) }
         findViewById<Button>(R.id.logoutButton).setOnClickListener { logOut() }
         findViewById<Button>(R.id.profileButton).setOnClickListener { startActivity(Intent(this, ProfileActivity::class.java)) }

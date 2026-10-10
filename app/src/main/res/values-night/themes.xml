@@ -1,5 +1,15 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <color name="cream_pink_background">#211A20</color>
+    <color name="primary_pink">#FF7D9A</color>
+    <color name="soft_rose_pink">#D95E7D</color>
+    <color name="dark_pink_text">#FFF1F5</color>
+    <color name="muted_pink_text">#D5AAB8</color>
+    <color name="white">#30252D</color>
+    <color name="pastel_peach">#593B45</color>
+    <color name="pastel_lilac">#453A58</color>
+    <color name="pastel_mint">#24483F</color>
+    <color name="pastel_blue">#31475A</color>
     <style name="Theme.FitnessApp" parent="Theme.MaterialComponents.DayNight.NoActionBar">
         <item name="colorPrimary">@color/primary_pink</item>
         <item name="colorPrimaryVariant">@color/soft_rose_pink</item>
