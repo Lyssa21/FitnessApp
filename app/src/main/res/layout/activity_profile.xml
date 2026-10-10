@@ -9,7 +9,6 @@
   <TextView android:id="@+id/profileBackButton" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginStart="20dp" android:layout_marginTop="12dp" android:text="‹  Back" android:textColor="@color/primary_pink" android:textSize="16sp" android:textStyle="bold" />
   <androidx.cardview.widget.CardView android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginStart="18dp" android:layout_marginTop="12dp" android:layout_marginEnd="18dp" app:cardBackgroundColor="@color/white" app:cardCornerRadius="18dp" app:cardElevation="2dp">
    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical" android:paddingVertical="8dp">
-    <TextView android:id="@+id/editProfileRow" style="@style/ProfileRow" android:text="▣   Edit profile information" />
     <TextView android:id="@+id/notificationsRow" style="@style/ProfileRow" android:text="♧   Notifications" />
    </LinearLayout>
   </androidx.cardview.widget.CardView>

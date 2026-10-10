@@ -1,22 +1,30 @@
 package com.example.fitnessapp
 
+import android.Manifest
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.net.Uri
+import android.os.Build
 import android.os.Bundle
-import android.widget.EditText
+import android.provider.Settings
 import android.widget.TextView
 import android.widget.Toast
-import android.widget.LinearLayout
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatDelegate
+import androidx.core.content.ContextCompat
 import com.example.fitnessapp.data.SessionManager
-import com.example.fitnessapp.network.ApiClient
 
 class ProfileActivity : BaseActivity() {
     private lateinit var session: SessionManager
     private lateinit var nameText: TextView
     private lateinit var themeText: TextView
     private lateinit var notificationText: TextView
+    private val notificationPermissionRequest = registerForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
+        getSharedPreferences("profile_preferences", MODE_PRIVATE).edit().putBoolean("notifications", granted).apply()
+        refreshHeader()
+        Toast.makeText(this, if (granted) "Notifications enabled" else "Notifications need phone permission", Toast.LENGTH_SHORT).show()
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -29,7 +37,6 @@ class ProfileActivity : BaseActivity() {
         refreshHeader()
 
         findViewById<TextView>(R.id.profileBackButton).setOnClickListener { finish() }
-        findViewById<TextView>(R.id.editProfileRow).setOnClickListener { editProfile() }
         findViewById<TextView>(R.id.notificationsRow).setOnClickListener { toggleNotifications() }
         findViewById<TextView>(R.id.securityRow).setOnClickListener {
             AlertDialog.Builder(this).setTitle("Security")
@@ -49,42 +56,66 @@ class ProfileActivity : BaseActivity() {
         }
     }
 
+    override fun onResume() {
+        super.onResume()
+        if (::nameText.isInitialized) refreshHeader()
+    }
+
     private fun refreshHeader() {
         nameText.text = session.userName
         val prefs = getSharedPreferences("profile_preferences", MODE_PRIVATE)
-        val notifications = if (prefs.getBoolean("notifications", true)) "ON" else "OFF"
+        val notifications = when {
+            !prefs.getBoolean("notifications", true) -> "OFF"
+            !ProgressNotifier.canNotify(this) -> "PHONE BLOCKED"
+            else -> "ON"
+        }
         val theme = if (prefs.getBoolean("dark_theme", false)) "Dark mode" else "Light mode"
         notificationText.text = notifications
         themeText.text = theme
-        findViewById<TextView>(R.id.notificationsRow).text = "♧   Notifications                              $notifications"
+        findViewById<TextView>(R.id.notificationsRow).text = "♧   Notifications  ·  $notifications"
         findViewById<TextView>(R.id.themeRow).text = "◉   Theme                                      $theme"
-    }
-
-    private fun editProfile() {
-        val box = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; setPadding(42, 0, 42, 0) }
-        val name = EditText(this).apply { setText(session.userName); hint = "Name" }
-        val email = EditText(this).apply { setText(session.email); hint = "Email"; inputType = android.text.InputType.TYPE_TEXT_VARIATION_EMAIL_ADDRESS }
-        box.addView(name); box.addView(email)
-        AlertDialog.Builder(this).setTitle("Edit profile information").setView(box)
-            .setNegativeButton("Cancel", null).setPositiveButton("Save", null).create().also { dialog ->
-                dialog.setOnShowListener { dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener {
-                    val newName = name.text.toString().trim(); val newEmail = email.text.toString().trim()
-                    if (newName.isBlank() || !android.util.Patterns.EMAIL_ADDRESS.matcher(newEmail).matches()) { Toast.makeText(this, "Enter a valid name and email", Toast.LENGTH_SHORT).show(); return@setOnClickListener }
-                    ApiClient.post("update_profile.php", mapOf("name" to newName, "email" to newEmail)) { result ->
-                        if (result.success) { session.updateProfile(newName, newEmail); findViewById<TextView>(R.id.profileEmailTextView).text = newEmail; refreshHeader(); dialog.dismiss() }
-                        Toast.makeText(this, result.message, Toast.LENGTH_SHORT).show()
-                    }
-                } }
-                dialog.show()
-            }
     }
 
     private fun toggleNotifications() {
         val prefs = getSharedPreferences("profile_preferences", MODE_PRIVATE)
-        val enabled = !prefs.getBoolean("notifications", true)
-        prefs.edit().putBoolean("notifications", enabled).apply()
+        if (prefs.getBoolean("notifications", true)) {
+            if (!ProgressNotifier.canNotify(this)) {
+                requestPermissionOrOpenSettings()
+                return
+            }
+            prefs.edit().putBoolean("notifications", false).apply()
+            refreshHeader()
+            Toast.makeText(this, "Notifications disabled", Toast.LENGTH_SHORT).show()
+            return
+        }
+        if (Build.VERSION.SDK_INT >= 33 && ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
+            notificationPermissionRequest.launch(Manifest.permission.POST_NOTIFICATIONS)
+            return
+        }
+        if (!ProgressNotifier.canNotify(this)) {
+            openPhoneNotificationSettings()
+            return
+        }
+        prefs.edit().putBoolean("notifications", true).apply()
         refreshHeader()
-        Toast.makeText(this, if (enabled) "Notifications enabled" else "Notifications disabled", Toast.LENGTH_SHORT).show()
+        Toast.makeText(this, "Notifications enabled", Toast.LENGTH_SHORT).show()
+    }
+
+    private fun openPhoneNotificationSettings() {
+        val settings = if (Build.VERSION.SDK_INT >= 26) {
+            Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS).putExtra(Settings.EXTRA_APP_PACKAGE, packageName)
+        } else {
+            Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.fromParts("package", packageName, null))
+        }
+        startActivity(settings)
+    }
+
+    private fun requestPermissionOrOpenSettings() {
+        if (Build.VERSION.SDK_INT >= 33 && ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
+            notificationPermissionRequest.launch(Manifest.permission.POST_NOTIFICATIONS)
+        } else {
+            openPhoneNotificationSettings()
+        }
     }
 
     private fun toggleTheme() {

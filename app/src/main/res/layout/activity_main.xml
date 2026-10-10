@@ -270,11 +270,13 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_gravity="bottom|end"
-        android:layout_margin="20dp"
-        android:layout_marginBottom="88dp"
-        android:contentDescription="Add a workout"
-        android:src="@android:drawable/ic_input_add"
-        app:backgroundTint="@color/soft_rose_pink"
+        android:layout_marginEnd="20dp"
+        android:layout_marginBottom="106dp"
+        android:contentDescription="Add activity"
+        android:src="@drawable/ic_add_activity"
+        app:backgroundTint="@color/primary_pink"
+        app:elevation="12dp"
+        app:fabSize="normal"
         app:tint="@color/white" />
 
     <androidx.cardview.widget.CardView

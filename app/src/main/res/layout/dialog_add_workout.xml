@@ -1,5 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:fillViewport="false">
+<LinearLayout
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:orientation="vertical"
@@ -33,18 +37,6 @@
         android:layout_marginTop="12dp"
         android:hint="Duration in minutes"
         android:inputType="number" />
-
-    <TextView
-        android:id="@+id/calorieEstimateTextView"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="12dp"
-        android:padding="12dp"
-        android:background="@drawable/bg_summary_card"
-        android:text="Calories: enter workout details"
-        android:textColor="@color/primary_pink"
-        android:textSize="16sp"
-        android:textStyle="bold" />
 
     <EditText
         android:id="@+id/distanceEditText"
@@ -85,6 +77,25 @@
         android:hint="Repetitions (weightlifting)"
         android:inputType="number" />
 
+    <com.google.android.material.button.MaterialButton
+        android:id="@+id/calculateCaloriesButton"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="12dp"
+        android:text="Calculate calories" />
+
+    <TextView
+        android:id="@+id/calorieEstimateTextView"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:padding="12dp"
+        android:background="@drawable/bg_summary_card"
+        android:text="Calories: enter workout details"
+        android:textColor="@color/primary_pink"
+        android:textSize="16sp"
+        android:textStyle="bold" />
+
     <EditText
         android:id="@+id/notesEditText"
         android:layout_width="match_parent"
@@ -102,3 +113,4 @@
         android:textColor="@color/muted_pink_text"
         android:textSize="12sp" />
 </LinearLayout>
+</ScrollView>

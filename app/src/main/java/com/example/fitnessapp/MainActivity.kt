@@ -94,7 +94,8 @@ class MainActivity : BaseActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
-        if (android.os.Build.VERSION.SDK_INT >= 33 && ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
+        if (getSharedPreferences("profile_preferences", MODE_PRIVATE).getBoolean("notifications", true) &&
+            android.os.Build.VERSION.SDK_INT >= 33 && ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
             notificationPermissionRequest.launch(Manifest.permission.POST_NOTIFICATIONS)
         }
 
@@ -253,8 +254,9 @@ class MainActivity : BaseActivity() {
         val cardio = type in listOf("Running", "Walking", "Cycling")
         val estimatedCalories = estimateWorkoutCalories(type, duration, distance)
         estimateView.text = when {
+            duration <= 0 -> "Calories: enter duration to calculate"
             cardio && (distance == null || distance <= 0.0) -> "Calories: enter distance to calculate"
-            !cardio && duration <= 0 -> "Calories: enter duration to calculate"
+            cardio -> "Calories: about $estimatedCalories kcal • average speed ${"%.1f".format(Locale.US, distance!! * 60.0 / duration)} km/h"
             else -> "Calories: about $estimatedCalories kcal"
         }
     }
@@ -278,12 +280,23 @@ class MainActivity : BaseActivity() {
         val repsInput = dialogView.findViewById<EditText>(R.id.repsEditText)
         val notesInput = dialogView.findViewById<EditText>(R.id.notesEditText)
         val dateButton = dialogView.findViewById<Button>(R.id.dateButton)
+        val calculateButton = dialogView.findViewById<Button>(R.id.calculateCaloriesButton)
         val cardioFields = listOf(distanceInput)
         val strengthFields = listOf(exerciseInput, weightInput, setsInput, repsInput)
         fun updateActivityFields(type: String) {
             cardioFields.forEach { it.visibility = if (type in listOf("Running", "Walking", "Cycling")) View.VISIBLE else View.GONE }
             strengthFields.forEach { it.visibility = if (type == "Weightlifting") View.VISIBLE else View.GONE }
+            distanceInput.hint = "$type distance in kilometres"
             updateCalorieEstimate(type, durationInput, distanceInput, calorieEstimateView)
+        }
+        calculateButton.setOnClickListener {
+            val type = activitySpinner.selectedItem?.toString() ?: "Running"
+            val duration = durationInput.text.toString().toIntOrNull() ?: 0
+            val distance = distanceInput.text.toString().toDoubleOrNull()
+            updateCalorieEstimate(type, durationInput, distanceInput, calorieEstimateView)
+            if (duration <= 0 || estimateWorkoutCalories(type, duration, distance) <= 0) {
+                Toast.makeText(this, "Enter valid workout details first", Toast.LENGTH_SHORT).show()
+            }
         }
         val estimateWatcher = object : android.text.TextWatcher {
             override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) = Unit
@@ -390,6 +403,8 @@ class MainActivity : BaseActivity() {
                     workout.id = editWorkout.id
                     { callback -> repository.updateWorkout(workout, session.userId, callback) }
                 }
+                val saveButton = dialog.getButton(AlertDialog.BUTTON_POSITIVE)
+                saveButton.isEnabled = false
                 save { success, message ->
                     if (success) {
                         if (editWorkout == null) workouts.add(0, workout)
@@ -401,10 +416,11 @@ class MainActivity : BaseActivity() {
                         updateSummary()
                         ProgressNotifier.show(this, if (editWorkout == null) "Workout saved" else "Workout updated", "Your ${workout.activityName.lowercase()} progress was saved online.")
                         notifyGoalAchievement()
+                        dialog.dismiss()
                     }
+                    else saveButton.isEnabled = true
                     Toast.makeText(this, message, Toast.LENGTH_SHORT).show()
                 }
-                dialog.dismiss()
             }
         }
         dialog.show()
