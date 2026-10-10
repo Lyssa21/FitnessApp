@@ -41,7 +41,7 @@
         android:layout_marginTop="12dp"
         android:padding="12dp"
         android:background="@drawable/bg_summary_card"
-        android:text="Estimated calories: enter workout details"
+        android:text="Calories: enter workout details"
         android:textColor="@color/primary_pink"
         android:textSize="16sp"
         android:textStyle="bold" />

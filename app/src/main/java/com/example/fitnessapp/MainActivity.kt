@@ -247,9 +247,9 @@ class MainActivity : BaseActivity() {
         val cardio = type in listOf("Running", "Walking", "Cycling")
         val estimatedCalories = estimateWorkoutCalories(type, duration, distance)
         estimateView.text = when {
-            cardio && (distance == null || distance <= 0.0) -> "Estimated calories: enter distance to calculate"
-            !cardio && duration <= 0 -> "Estimated calories: enter duration to calculate"
-            else -> "Estimated calories: about $estimatedCalories kcal"
+            cardio && (distance == null || distance <= 0.0) -> "Calories: enter distance to calculate"
+            !cardio && duration <= 0 -> "Calories: enter duration to calculate"
+            else -> "Calories: about $estimatedCalories kcal"
         }
     }
 
@@ -360,7 +360,7 @@ class MainActivity : BaseActivity() {
                 }
                 val calories = estimateWorkoutCalories(type, duration, distance)
                 if (calories <= 0) {
-                    Toast.makeText(this, "Enter valid details to estimate calories", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(this, "Enter valid details to calculate calories", Toast.LENGTH_SHORT).show()
                     return@setOnClickListener
                 }
 
