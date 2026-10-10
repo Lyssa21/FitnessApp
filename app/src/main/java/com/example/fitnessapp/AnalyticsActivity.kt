@@ -6,7 +6,6 @@ import android.widget.ProgressBar
 import android.widget.TextView
 import android.widget.Spinner
 import android.widget.ArrayAdapter
-import android.widget.TextView
 import androidx.core.content.ContextCompat
 import com.example.fitnessapp.data.WorkoutRepository
 import com.example.fitnessapp.data.SessionManager
