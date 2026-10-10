@@ -34,4 +34,8 @@ class SessionManager(context: Context) {
         preferences.edit().clear().apply()
         com.example.fitnessapp.network.ApiClient.authToken = ""
     }
+
+    fun updateName(name: String) {
+        preferences.edit().putString("user_name", name).apply()
+    }
 }
