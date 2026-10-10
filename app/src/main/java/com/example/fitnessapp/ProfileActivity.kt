@@ -51,8 +51,12 @@ class ProfileActivity : BaseActivity() {
     private fun refreshHeader() {
         nameText.text = session.userName
         val prefs = getSharedPreferences("profile_preferences", MODE_PRIVATE)
-        notificationText.text = if (prefs.getBoolean("notifications", true)) "ON" else "OFF"
-        themeText.text = if (prefs.getBoolean("dark_theme", false)) "Dark mode" else "Light mode"
+        val notifications = if (prefs.getBoolean("notifications", true)) "ON" else "OFF"
+        val theme = if (prefs.getBoolean("dark_theme", false)) "Dark mode" else "Light mode"
+        notificationText.text = notifications
+        themeText.text = theme
+        findViewById<TextView>(R.id.notificationsRow).text = "♧   Notifications                              $notifications"
+        findViewById<TextView>(R.id.themeRow).text = "◉   Theme                                      $theme"
     }
 
     private fun editProfile() {
