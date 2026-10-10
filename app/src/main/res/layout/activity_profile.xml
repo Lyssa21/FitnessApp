@@ -22,7 +22,6 @@
   <androidx.cardview.widget.CardView android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginStart="18dp" android:layout_marginTop="16dp" android:layout_marginEnd="18dp" app:cardBackgroundColor="@color/white" app:cardCornerRadius="18dp" app:cardElevation="2dp">
    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical" android:paddingVertical="8dp">
     <TextView android:id="@+id/helpRow" style="@style/ProfileRow" android:text="♙   Help &amp; Support" />
-    <TextView android:id="@+id/contactRow" style="@style/ProfileRow" android:text="▣   Contact us" />
     <TextView android:id="@+id/privacyRow" style="@style/ProfileRow" android:text="▢   Privacy policy" />
    </LinearLayout>
   </androidx.cardview.widget.CardView>

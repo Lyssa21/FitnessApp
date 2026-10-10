@@ -42,7 +42,6 @@ class ProfileActivity : BaseActivity() {
                 .setMessage("For tracking help, allow location access, keep GPS on, and start a workout outdoors.")
                 .setPositiveButton("OK", null).show()
         }
-        findViewById<TextView>(R.id.contactRow).setOnClickListener { contactSupport() }
         findViewById<TextView>(R.id.privacyRow).setOnClickListener {
             AlertDialog.Builder(this).setTitle("Privacy policy")
                 .setMessage("BlushFit uses your account, workout, location, and route data to provide fitness tracking. Route data is saved with your workout when you choose to save it.")
@@ -96,11 +95,4 @@ class ProfileActivity : BaseActivity() {
         refreshHeader()
     }
 
-    private fun contactSupport() {
-        val intent = Intent(Intent.ACTION_SENDTO, Uri.parse("mailto:")).apply {
-            putExtra(Intent.EXTRA_SUBJECT, "BlushFit support")
-        }
-        if (intent.resolveActivity(packageManager) != null) startActivity(intent)
-        else Toast.makeText(this, "No email app is installed", Toast.LENGTH_SHORT).show()
-    }
 }
