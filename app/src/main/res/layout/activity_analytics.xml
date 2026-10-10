@@ -72,7 +72,7 @@
         <Spinner
             android:id="@+id/activitySpinner" android:layout_width="match_parent"
             android:layout_height="52dp" android:layout_marginTop="8dp"
-            android:background="@drawable/profile_avatar" android:paddingStart="16dp"
+            android:background="@drawable/activity_pill" android:paddingStart="18dp"
             android:paddingEnd="16dp" />
 
         <androidx.cardview.widget.CardView
@@ -82,7 +82,7 @@
             <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
                 android:orientation="vertical" android:padding="22dp">
                 <TextView android:id="@+id/selectedActivityTextView" android:layout_width="match_parent"
-                    android:layout_height="wrap_content" android:text="Running" android:textColor="@color/dark_pink_text"
+                    android:layout_height="wrap_content" android:text="Running" android:textColor="@color/primary_pink"
                     android:textSize="28sp" android:textStyle="bold" />
                 <TextView android:id="@+id/selectedActivitySubtitleTextView" android:layout_width="match_parent"
                     android:layout_height="wrap_content" android:layout_marginTop="4dp" android:text="Your selected activity"

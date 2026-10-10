@@ -6,6 +6,8 @@ import android.widget.ProgressBar
 import android.widget.TextView
 import android.widget.Spinner
 import android.widget.ArrayAdapter
+import android.widget.TextView
+import androidx.core.content.ContextCompat
 import com.example.fitnessapp.data.WorkoutRepository
 import com.example.fitnessapp.data.SessionManager
 import com.example.fitnessapp.model.Workout
@@ -33,7 +35,17 @@ class AnalyticsActivity : BaseActivity() {
         }
         val activitySpinner = findViewById<Spinner>(R.id.activitySpinner)
         val activities = listOf("Running", "Walking", "Cycling", "Weightlifting", "Yoga")
-        activitySpinner.adapter = ArrayAdapter(this, android.R.layout.simple_spinner_dropdown_item, activities)
+        activitySpinner.adapter = object : ArrayAdapter<String>(this, android.R.layout.simple_spinner_dropdown_item, activities) {
+            override fun getView(position: Int, convertView: android.view.View?, parent: android.view.ViewGroup): android.view.View {
+                return TextView(this@AnalyticsActivity).apply {
+                    text = activities[position]
+                    textSize = 17f
+                    setTextColor(ContextCompat.getColor(this@AnalyticsActivity, R.color.primary_pink))
+                    gravity = android.view.Gravity.CENTER_VERTICAL
+                    setPadding(12, 0, 12, 0)
+                }
+            }
+        }
         activitySpinner.onItemSelectedListener = object : android.widget.AdapterView.OnItemSelectedListener {
             override fun onNothingSelected(parent: android.widget.AdapterView<*>?) = Unit
             override fun onItemSelected(parent: android.widget.AdapterView<*>?, view: android.view.View?, position: Int, id: Long) {
