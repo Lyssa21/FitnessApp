@@ -213,6 +213,10 @@
                 <ProgressBar android:id="@+id/runningProgressBar" style="?android:attr/progressBarStyleHorizontal" android:layout_width="match_parent" android:layout_height="10dp" android:layout_marginTop="6dp" android:max="150" android:progressTint="@color/primary_pink" />
                 <TextView android:id="@+id/runningValueTextView" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="3dp" android:text="0 min" android:textColor="@color/muted_pink_text" android:textSize="13sp" />
 
+                <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="16dp" android:text="Walking" android:textColor="@color/dark_pink_text" android:textSize="14sp" />
+                <ProgressBar android:id="@+id/walkingProgressBar" style="?android:attr/progressBarStyleHorizontal" android:layout_width="match_parent" android:layout_height="10dp" android:layout_marginTop="6dp" android:max="150" android:progressTint="@color/pastel_blue" />
+                <TextView android:id="@+id/walkingValueTextView" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="3dp" android:text="0 min" android:textColor="@color/muted_pink_text" android:textSize="13sp" />
+
                 <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="16dp" android:text="Cycling" android:textColor="@color/dark_pink_text" android:textSize="14sp" />
                 <ProgressBar android:id="@+id/cyclingProgressBar" style="?android:attr/progressBarStyleHorizontal" android:layout_width="match_parent" android:layout_height="10dp" android:layout_marginTop="6dp" android:max="150" android:progressTint="@color/soft_rose_pink" />
                 <TextView android:id="@+id/cyclingValueTextView" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="3dp" android:text="0 min" android:textColor="@color/muted_pink_text" android:textSize="13sp" />

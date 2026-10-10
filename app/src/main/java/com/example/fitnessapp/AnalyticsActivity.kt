@@ -81,6 +81,7 @@ class AnalyticsActivity : BaseActivity() {
             )
 
         setActivityProgress(R.id.runningProgressBar, R.id.runningValueTextView, breakdown["Running"] ?: 0)
+        setActivityProgress(R.id.walkingProgressBar, R.id.walkingValueTextView, breakdown["Walking"] ?: 0)
         setActivityProgress(R.id.cyclingProgressBar, R.id.cyclingValueTextView, breakdown["Cycling"] ?: 0)
         setActivityProgress(
             R.id.weightliftingProgressBar,
