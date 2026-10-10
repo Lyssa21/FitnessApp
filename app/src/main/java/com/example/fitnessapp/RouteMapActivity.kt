@@ -4,6 +4,9 @@ import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
+import android.Manifest
+import android.content.pm.PackageManager
+import android.location.LocationManager
 import android.graphics.Color
 import android.graphics.Bitmap
 import android.graphics.Canvas
@@ -11,14 +14,18 @@ import android.graphics.Paint
 import android.graphics.drawable.BitmapDrawable
 import android.net.Uri
 import android.os.Bundle
+import android.os.Handler
+import android.os.Looper
 import android.view.Gravity
 import android.view.ViewGroup
 import android.widget.FrameLayout
 import android.widget.TextView
 import androidx.core.content.ContextCompat
+import androidx.core.location.LocationManagerCompat
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import com.example.fitnessapp.tracking.TrackingService
+import com.google.android.gms.location.LocationServices
 import org.json.JSONArray
 import org.osmdroid.config.Configuration
 import org.osmdroid.tileprovider.tilesource.TileSourcePolicy
@@ -39,6 +46,9 @@ class RouteMapActivity : BaseActivity() {
     private var currentPin: Marker? = null
     private var finishPin: Marker? = null
     private var finished = false
+    private var tileProblem: String? = null
+    private var tileLoaded = false
+    private var waitedForGps = false
     private val live by lazy { intent.getBooleanExtra(EXTRA_LIVE, false) }
 
     private val receiver = object : BroadcastReceiver() {
@@ -72,7 +82,8 @@ class RouteMapActivity : BaseActivity() {
                     TileSourcePolicy.FLAG_USER_AGENT_MEANINGFUL)
             ))
             setMultiTouchControls(true)
-            controller.setZoom(16.0)
+            controller.setZoom(11.0)
+            controller.setCenter(GeoPoint(16.8661, 96.1951))
             setBackgroundColor(android.graphics.Color.rgb(248, 242, 245))
         }
         route = Polyline().apply {
@@ -81,7 +92,7 @@ class RouteMapActivity : BaseActivity() {
         }
         map.overlays.add(route)
         status = TextView(this).apply {
-            text = "Waiting for GPS location • streets need internet"
+            text = "Waiting for GPS location · checking street map…"
             setTextColor(android.graphics.Color.WHITE)
             textSize = 14f
             setPadding(18.dp, 12.dp, 18.dp, 12.dp)
@@ -106,6 +117,8 @@ class RouteMapActivity : BaseActivity() {
             insets
         }
         setContentView(root)
+        centerOnLastKnownLocation()
+        checkStreetTiles()
 
         val saved = runCatching { JSONArray(intent.getStringExtra(EXTRA_POINTS).orEmpty()) }.getOrNull() ?: JSONArray()
         for (i in 0 until saved.length()) {
@@ -120,6 +133,71 @@ class RouteMapActivity : BaseActivity() {
             addAction(TrackingService.ACTION_UPDATE)
             addAction(TrackingService.ACTION_STOPPED)
         }, ContextCompat.RECEIVER_NOT_EXPORTED)
+        updateStatus()
+        if (live) Handler(Looper.getMainLooper()).postDelayed({
+            if (!isFinishing && !isDestroyed && points.isEmpty()) {
+                waitedForGps = true
+                updateStatus()
+            }
+        }, 20_000L)
+    }
+
+    private fun centerOnLastKnownLocation() {
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED &&
+            ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) return
+        try {
+            LocationServices.getFusedLocationProviderClient(this).lastLocation.addOnSuccessListener { location ->
+                if (location != null && points.isEmpty() && !isFinishing && !isDestroyed) {
+                    map.controller.setZoom(15.0)
+                    map.controller.animateTo(GeoPoint(location.latitude, location.longitude))
+                }
+            }
+        } catch (_: SecurityException) { /* Permission can change while opening the map. */ }
+    }
+
+    private fun checkStreetTiles() {
+        Thread {
+            val problem = try {
+                val connection = (java.net.URL("https://tile.openstreetmap.org/0/0/0.png").openConnection() as java.net.HttpURLConnection).apply {
+                    requestMethod = "GET"
+                    connectTimeout = 8000
+                    readTimeout = 8000
+                    setRequestProperty("User-Agent", "BlushFit/1.0 (+https://github.com/Lyssa21/FitnessApp)")
+                }
+                try {
+                    val code = connection.responseCode
+                    if (code == 200) {
+                        connection.inputStream.use { it.read() }
+                        null
+                    } else if (code == 403) "Street map access blocked (HTTP 403)"
+                    else "Street map unavailable (HTTP $code)"
+                } finally { connection.disconnect() }
+            } catch (_: Exception) { "Street map cannot connect. Check internet or VPN." }
+            Handler(Looper.getMainLooper()).post {
+                if (!isFinishing && !isDestroyed) {
+                    tileLoaded = problem == null
+                    tileProblem = problem
+                    updateStatus()
+                }
+            }
+        }.start()
+    }
+
+    private fun updateStatus() {
+        val gps = when {
+            finished -> if (points.isEmpty()) "No GPS route was recorded" else "Finished route · ${points.size} GPS points"
+            points.isNotEmpty() -> "${points.size} GPS ${if (points.size == 1) "point" else "points"}"
+            !live -> "No GPS route recorded"
+            ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED -> "Precise location permission needed"
+            !LocationManagerCompat.isLocationEnabled(getSystemService(LOCATION_SERVICE) as LocationManager) -> "Turn on phone Location"
+            waitedForGps -> "No GPS fix yet; try outdoors"
+            else -> "Waiting for GPS location"
+        }
+        status.text = when {
+            tileProblem != null -> "$gps · $tileProblem"
+            !tileLoaded -> "$gps · loading streets…"
+            else -> "$gps · street server reachable"
+        }
     }
 
     private fun addPoint(point: GeoPoint, follow: Boolean) {
@@ -129,7 +207,7 @@ class RouteMapActivity : BaseActivity() {
         if (startPin == null) startPin = pin(point, "Start", android.graphics.Color.rgb(52, 169, 110))
         if (currentPin == null) currentPin = pin(point, "You are here", android.graphics.Color.rgb(255, 101, 132))
         else currentPin?.position = point
-        status.text = "Live route • ${points.size} GPS ${if (points.size == 1) "point" else "points"}"
+        updateStatus()
         if (follow || points.size == 1) map.controller.animateTo(point)
         map.invalidate()
     }
@@ -140,7 +218,7 @@ class RouteMapActivity : BaseActivity() {
         points.lastOrNull()?.let { finishPin = pin(it, "Finish", android.graphics.Color.rgb(92, 52, 64)) }
         currentPin?.let { map.overlays.remove(it) }
         currentPin = null
-        status.text = if (points.isEmpty()) "No GPS route was recorded" else "Finished route • ${points.size} GPS points"
+        updateStatus()
         map.invalidate()
     }
 
