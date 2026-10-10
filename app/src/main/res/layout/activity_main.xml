@@ -64,7 +64,8 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="Profile"
-                    android:textColor="@color/primary_pink" />
+                    android:textColor="@color/primary_pink"
+                    android:visibility="gone" />
 
                 <com.google.android.material.button.MaterialButton
                     android:id="@+id/logoutButton"
@@ -73,7 +74,8 @@
                     android:layout_height="wrap_content"
                     android:layout_marginStart="8dp"
                     android:text="Log out"
-                    android:textColor="@color/muted_pink_text" />
+                    android:textColor="@color/muted_pink_text"
+                    android:visibility="gone" />
             </LinearLayout>
 
             <TextView
@@ -264,9 +266,41 @@
         android:layout_height="wrap_content"
         android:layout_gravity="bottom|end"
         android:layout_margin="20dp"
+        android:layout_marginBottom="88dp"
         android:contentDescription="Add a workout"
         android:src="@android:drawable/ic_input_add"
         app:backgroundTint="@color/soft_rose_pink"
         app:tint="@color/white" />
+
+    <androidx.cardview.widget.CardView
+        android:id="@+id/bottomNavigationBar"
+        android:layout_width="match_parent"
+        android:layout_height="76dp"
+        android:layout_gravity="bottom"
+        android:layout_marginStart="16dp"
+        android:layout_marginEnd="16dp"
+        android:layout_marginBottom="10dp"
+        app:cardBackgroundColor="@color/primary_pink"
+        app:cardCornerRadius="24dp"
+        app:cardElevation="8dp">
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:gravity="center"
+            android:orientation="horizontal">
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/bottomDashboardButton"
+                style="@style/BottomNavButton"
+                android:text="⌂\nDashboard" />
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/bottomAnalyticsButton"
+                style="@style/BottomNavButton"
+                android:text="◉\nAnalytics" />
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/bottomProfileButton"
+                style="@style/BottomNavButton"
+                android:text="♙\nProfile" />
+        </LinearLayout>
+    </androidx.cardview.widget.CardView>
 
 </androidx.coordinatorlayout.widget.CoordinatorLayout>

@@ -129,6 +129,9 @@ class MainActivity : BaseActivity() {
         findViewById<Button>(R.id.analyticsButton).setOnClickListener {
             startActivity(Intent(this, AnalyticsActivity::class.java))
         }
+        findViewById<Button>(R.id.bottomDashboardButton).setOnClickListener { findViewById<androidx.core.widget.NestedScrollView>(R.id.workoutSwipeRefresh).smoothScrollTo(0, 0) }
+        findViewById<Button>(R.id.bottomAnalyticsButton).setOnClickListener { startActivity(Intent(this, AnalyticsActivity::class.java)) }
+        findViewById<Button>(R.id.bottomProfileButton).setOnClickListener { startActivity(Intent(this, ProfileActivity::class.java)) }
         findViewById<Button>(R.id.logoutButton).setOnClickListener { logOut() }
         findViewById<Button>(R.id.profileButton).setOnClickListener { startActivity(Intent(this, ProfileActivity::class.java)) }
         findViewById<androidx.swiperefreshlayout.widget.SwipeRefreshLayout>(R.id.workoutSwipeRefresh).setOnRefreshListener {
