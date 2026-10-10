@@ -7,6 +7,10 @@ import android.app.Service
 import android.content.Intent
 import android.os.IBinder
 import android.os.Looper
+import android.hardware.Sensor
+import android.hardware.SensorEvent
+import android.hardware.SensorEventListener
+import android.hardware.SensorManager
 import androidx.core.app.NotificationCompat
 import com.google.android.gms.location.*
 import org.json.JSONArray
@@ -14,12 +18,16 @@ import org.json.JSONObject
 import kotlin.math.roundToInt
 
 /** GPS-only route and step estimator, compatible with Android mock-location providers. */
-class TrackingService : Service() {
+class TrackingService : Service(), SensorEventListener {
     private lateinit var locationClient: FusedLocationProviderClient
     private var previous: android.location.Location? = null
     private var distanceMeters = 0f
     private var startedAt = 0L
     private var activityType = "Running"
+    private lateinit var sensorManager: SensorManager
+    private var motionSteps = 0
+    private var lastAcceleration = 0.0
+    private var lastStepAt = 0L
     private val routePoints = JSONArray()
 
     private val locationCallback = object : LocationCallback() {
@@ -44,6 +52,7 @@ class TrackingService : Service() {
     override fun onCreate() {
         super.onCreate()
         locationClient = LocationServices.getFusedLocationProviderClient(this)
+        sensorManager = getSystemService(SENSOR_SERVICE) as SensorManager
         createChannel()
     }
 
@@ -56,6 +65,12 @@ class TrackingService : Service() {
         activityType = intent?.getStringExtra("activity_type") ?: activityType
         startForeground(NOTIFICATION_ID, notification("Waiting for GPS route updates"))
         startedAt = System.currentTimeMillis()
+        motionSteps = 0
+        lastAcceleration = 0.0
+        lastStepAt = 0L
+        sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER)?.let {
+            sensorManager.registerListener(this, it, SensorManager.SENSOR_DELAY_GAME)
+        }
         previous = null
         distanceMeters = 0f
         while (routePoints.length() > 0) routePoints.remove(routePoints.length() - 1)
@@ -68,18 +83,34 @@ class TrackingService : Service() {
 
     override fun onDestroy() {
         locationClient.removeLocationUpdates(locationCallback)
+        sensorManager.unregisterListener(this)
         sendBroadcast(Intent(ACTION_STOPPED).setPackage(packageName))
         super.onDestroy()
     }
 
     override fun onBind(intent: Intent?): IBinder? = null
 
+    override fun onSensorChanged(event: SensorEvent) {
+        if (event.sensor.type != Sensor.TYPE_ACCELEROMETER) return
+        val magnitude = kotlin.math.sqrt((event.values[0] * event.values[0] + event.values[1] * event.values[1] + event.values[2] * event.values[2]).toDouble())
+        val delta = magnitude - lastAcceleration
+        val now = System.currentTimeMillis()
+        if (lastAcceleration > 0 && delta > 1.4 && now - lastStepAt > 280) {
+            motionSteps++
+            lastStepAt = now
+        }
+        lastAcceleration = lastAcceleration * 0.8 + magnitude * 0.2
+    }
+
+    override fun onAccuracyChanged(sensor: Sensor?, accuracy: Int) = Unit
+
     private fun publish(lat: Double, lng: Double) {
         val elapsedSeconds = ((System.currentTimeMillis() - startedAt) / 1000L).coerceAtLeast(1L)
         val minutes = (elapsedSeconds / 60.0).roundToInt().coerceAtLeast(1)
         val strideMeters = when (activityType) { "Walking" -> 0.72f; "Running" -> 0.78f; else -> 0.72f }
         val calories = estimateDistanceCalories(distanceMeters / 1000.0)
-        val steps = (distanceMeters / strideMeters).roundToInt()
+        val gpsSteps = (distanceMeters / strideMeters).roundToInt()
+        val steps = if (motionSteps > 0) motionSteps else gpsSteps
         val speedKmh = if (elapsedSeconds > 0) distanceMeters / elapsedSeconds * 3.6 else 0.0
         val paceMinKm = if (speedKmh > 0.1) 60.0 / speedKmh else 0.0
         sendBroadcast(Intent(ACTION_UPDATE).setPackage(packageName).apply {
