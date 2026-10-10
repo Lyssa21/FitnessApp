@@ -65,6 +65,34 @@
                 android:paddingEnd="12dp" />
         </com.google.android.material.textfield.TextInputLayout>
 
+        <TextView
+            android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:layout_marginTop="22dp" android:text="Categories"
+            android:textColor="@color/dark_pink_text" android:textSize="16sp" android:textStyle="bold" />
+        <Spinner
+            android:id="@+id/activitySpinner" android:layout_width="match_parent"
+            android:layout_height="52dp" android:layout_marginTop="8dp"
+            android:background="@drawable/profile_avatar" android:paddingStart="16dp"
+            android:paddingEnd="16dp" />
+
+        <androidx.cardview.widget.CardView
+            android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:layout_marginTop="16dp" app:cardBackgroundColor="@color/white"
+            app:cardCornerRadius="24dp" app:cardElevation="3dp">
+            <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:orientation="vertical" android:padding="22dp">
+                <TextView android:id="@+id/selectedActivityTextView" android:layout_width="match_parent"
+                    android:layout_height="wrap_content" android:text="Running" android:textColor="@color/dark_pink_text"
+                    android:textSize="28sp" android:textStyle="bold" />
+                <TextView android:id="@+id/selectedActivitySubtitleTextView" android:layout_width="match_parent"
+                    android:layout_height="wrap_content" android:layout_marginTop="4dp" android:text="Your selected activity"
+                    android:textColor="@color/muted_pink_text" android:textSize="14sp" />
+                <TextView android:id="@+id/selectedActivityStatsTextView" android:layout_width="match_parent"
+                    android:layout_height="wrap_content" android:layout_marginTop="22dp" android:lineSpacingExtra="8dp"
+                    android:text="0 min\n0 kcal\n0.00 km\n0 steps" android:textColor="@color/dark_pink_text" android:textSize="19sp" />
+            </LinearLayout>
+        </androidx.cardview.widget.CardView>
+
         <androidx.cardview.widget.CardView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"

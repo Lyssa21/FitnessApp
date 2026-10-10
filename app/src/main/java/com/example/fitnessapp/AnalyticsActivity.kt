@@ -17,6 +17,8 @@ class AnalyticsActivity : BaseActivity() {
     private val dateFormat = SimpleDateFormat("yyyy-MM-dd", Locale.US)
     private var allWorkouts: List<Workout> = emptyList()
     private var selectedPeriod = 0
+    private var selectedActivity = "Running"
+    private var visibleWorkouts: List<Workout> = emptyList()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -28,6 +30,16 @@ class AnalyticsActivity : BaseActivity() {
         periodSpinner.onItemSelectedListener = object : android.widget.AdapterView.OnItemSelectedListener {
             override fun onNothingSelected(parent: android.widget.AdapterView<*>?) = Unit
             override fun onItemSelected(parent: android.widget.AdapterView<*>?, view: android.view.View?, position: Int, id: Long) { selectedPeriod = position; showAnalytics() }
+        }
+        val activitySpinner = findViewById<Spinner>(R.id.activitySpinner)
+        val activities = listOf("Running", "Walking", "Cycling", "Weightlifting", "Yoga")
+        activitySpinner.adapter = ArrayAdapter(this, android.R.layout.simple_spinner_dropdown_item, activities)
+        activitySpinner.onItemSelectedListener = object : android.widget.AdapterView.OnItemSelectedListener {
+            override fun onNothingSelected(parent: android.widget.AdapterView<*>?) = Unit
+            override fun onItemSelected(parent: android.widget.AdapterView<*>?, view: android.view.View?, position: Int, id: Long) {
+                selectedActivity = activities[position]
+                showActivityDetail()
+            }
         }
         val session = SessionManager(this)
         WorkoutRepository(this).loadFromServer(session.userId, { items -> allWorkouts = items; showAnalytics() }) {
@@ -50,6 +62,8 @@ class AnalyticsActivity : BaseActivity() {
                 .getOrNull()
                 ?.let { !it.before(start) } == true
         }
+        visibleWorkouts = periodWorkouts
+        showActivityDetail()
 
         val totalMinutes = periodWorkouts.sumOf { it.durationMinutes }
         val totalCalories = periodWorkouts.sumOf { it.calories }
@@ -104,6 +118,22 @@ class AnalyticsActivity : BaseActivity() {
             }
         }
         findViewById<TextView>(R.id.insightTextView).text = insight
+    }
+
+    private fun showActivityDetail() {
+        val items = visibleWorkouts.filter { it.activityName == selectedActivity }
+        val minutes = items.sumOf { it.durationMinutes }
+        val calories = items.sumOf { it.calories }
+        val distance = items.sumOf { it.distanceKm ?: 0.0 }
+        val steps = items.sumOf { it.stepsCount ?: 0 }
+        findViewById<TextView>(R.id.selectedActivityTextView).text = selectedActivity
+        findViewById<TextView>(R.id.selectedActivitySubtitleTextView).text = when {
+            items.isEmpty() -> "No workouts recorded in this period"
+            items.size == 1 -> "Your last ${selectedActivity.lowercase()} workout"
+            else -> "${items.size} ${selectedActivity.lowercase()} workouts in this period"
+        }
+        findViewById<TextView>(R.id.selectedActivityStatsTextView).text =
+            "$minutes min active time\n$calories kcal burned\n${"%.2f".format(distance)} km distance\n$steps estimated steps"
     }
 
     private fun setActivityProgress(progressId: Int, valueId: Int, minutes: Int) {
