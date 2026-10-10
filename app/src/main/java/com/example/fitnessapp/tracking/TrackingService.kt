@@ -126,7 +126,7 @@ class TrackingService : Service(), SensorEventListener {
             putExtra("longitude", lng)
         })
         getSystemService(NotificationManager::class.java).notify(
-            NOTIFICATION_ID, notification("${"%.2f".format(distanceMeters / 1000.0)} km • $steps estimated steps")
+            NOTIFICATION_ID, notification("${"%.2f".format(distanceMeters / 1000.0)} km • $steps steps")
         )
     }
 

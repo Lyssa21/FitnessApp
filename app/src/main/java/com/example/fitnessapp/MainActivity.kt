@@ -75,7 +75,7 @@ class MainActivity : BaseActivity() {
                 currentLatitude = intent.getDoubleExtra("latitude", 0.0)
                 currentLongitude = intent.getDoubleExtra("longitude", 0.0)
                 findViewById<TextView>(R.id.trackingStatusTextView).text =
-                    "Tracking: %.2f km • %d estimated GPS steps • %d min • %d kcal".format(trackingDistanceKm, trackingSteps, trackingMinutes, trackingCalories)
+                    "Tracking: %.2f km • %d steps • %d min • %d kcal".format(trackingDistanceKm, trackingSteps, trackingMinutes, trackingCalories)
             } else if (intent?.action == TrackingService.ACTION_STOPPED) {
                 prepareStoppedWorkout()
             }
@@ -195,7 +195,7 @@ class MainActivity : BaseActivity() {
         if (trackingMinutes > 0 && trackingCalories > 0) {
             pendingTrackingWorkout = WorkoutFactory.create(trackingActivityType, duration = trackingMinutes.toInt(), calories = trackingCalories,
                 date = SimpleDateFormat("yyyy-MM-dd", Locale.US).format(Date()), distanceKm = trackingDistanceKm,
-                latitude = currentLatitude, longitude = currentLongitude, notes = "GPS tracked; estimated steps: $trackingSteps").apply {
+                latitude = currentLatitude, longitude = currentLongitude, notes = "GPS tracked; steps: $trackingSteps").apply {
                     routePointsJson = trackingRouteJson
                     stepsCount = trackingSteps
                 }
@@ -205,7 +205,7 @@ class MainActivity : BaseActivity() {
                 text = "SAVE PROGRESS TO ACCOUNT"
             }
             findViewById<TextView>(R.id.trackingStatusTextView).text =
-                "Ready to save: %.2f km • %d estimated GPS steps • %d kcal (distance estimate).".format(trackingDistanceKm, trackingSteps, trackingCalories)
+                "Ready to save: %.2f km • %d steps • %d kcal".format(trackingDistanceKm, trackingSteps, trackingCalories)
         } else {
             findViewById<TextView>(R.id.trackingStatusTextView).text = "No GPS fix received. Enable location and try outdoors."
         }
@@ -219,7 +219,7 @@ class MainActivity : BaseActivity() {
             if (success) {
                 workouts.add(0, workout); adapter.notifyItemInserted(0); updateSummary(); pendingTrackingWorkout = null
                 button.visibility = android.view.View.GONE
-                ProgressNotifier.show(this, "GPS workout saved", "%.2f km • %d estimated steps".format(trackingDistanceKm, trackingSteps))
+                ProgressNotifier.show(this, "GPS workout saved", "%.2f km • %d steps".format(trackingDistanceKm, trackingSteps))
             }
             button.isEnabled = true
             Toast.makeText(this, message, Toast.LENGTH_SHORT).show()
@@ -429,7 +429,7 @@ class MainActivity : BaseActivity() {
         val volume = (workout.weightKg ?: 0.0) * (workout.sets ?: 0) * (workout.reps ?: 0)
         AlertDialog.Builder(this)
             .setTitle("${workout.activityName} details")
-            .setMessage("Date: ${workout.date}\nDuration: ${workout.durationMinutes} min\nDistance: ${"%.2f".format(workout.distanceKm ?: 0.0)} km\nAverage speed: ${"%.2f".format(speed)} km/h\nEstimated GPS steps: ${workout.stepsCount ?: "Not available"}\nCalories: ${workout.calories} kcal\nLifting volume: ${"%.1f".format(volume)} kg\nNotes: ${workout.notes ?: "None"}")
+            .setMessage("Date: ${workout.date}\nDuration: ${workout.durationMinutes} min\nDistance: ${"%.2f".format(workout.distanceKm ?: 0.0)} km\nAverage speed: ${"%.2f".format(speed)} km/h\nSteps: ${workout.stepsCount ?: "Not available"}\nCalories: ${workout.calories} kcal\nLifting volume: ${"%.1f".format(volume)} kg\nNotes: ${workout.notes ?: "None"}")
             .setNeutralButton("Edit") { _, _ -> showAddWorkoutDialog(workout) }
             .apply { if (!workout.routePointsJson.isNullOrBlank()) setNegativeButton("View route") { _, _ -> startActivity(Intent(this@MainActivity, RouteMapActivity::class.java).putExtra(RouteMapActivity.EXTRA_POINTS, workout.routePointsJson)) } }
             .setPositiveButton("Close", null)

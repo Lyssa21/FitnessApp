@@ -154,7 +154,7 @@
                             <TextView
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
-                                android:text="👟  Estimated GPS steps"
+                                android:text="👟  Steps"
                                 android:textColor="@color/muted_pink_text"
                                 android:textSize="14sp" />
                             <TextView

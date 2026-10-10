@@ -133,7 +133,7 @@ class AnalyticsActivity : BaseActivity() {
             else -> "${items.size} ${selectedActivity.lowercase()} workouts in this period"
         }
         findViewById<TextView>(R.id.selectedActivityStatsTextView).text =
-            "$minutes min active time\n$calories kcal burned\n${"%.2f".format(distance)} km distance\n$steps estimated steps"
+            "$minutes min active time\n$calories kcal burned\n${"%.2f".format(distance)} km distance\n$steps steps"
     }
 
     private fun setActivityProgress(progressId: Int, valueId: Int, minutes: Int) {
