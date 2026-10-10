@@ -1,17 +1,13 @@
 package com.example.fitnessapp
 
+import android.Manifest
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
-import android.Manifest
 import android.content.pm.PackageManager
-import android.location.LocationManager
 import android.graphics.Color
-import android.graphics.Bitmap
-import android.graphics.Canvas
-import android.graphics.Paint
-import android.graphics.drawable.BitmapDrawable
+import android.location.LocationManager
 import android.net.Uri
 import android.os.Bundle
 import android.os.Handler
@@ -27,27 +23,31 @@ import androidx.core.view.WindowInsetsCompat
 import com.example.fitnessapp.tracking.TrackingService
 import com.google.android.gms.location.LocationServices
 import org.json.JSONArray
-import org.osmdroid.config.Configuration
-import org.osmdroid.tileprovider.tilesource.TileSourcePolicy
-import org.osmdroid.tileprovider.tilesource.XYTileSource
-import org.osmdroid.util.BoundingBox
-import org.osmdroid.util.GeoPoint
-import org.osmdroid.views.MapView
-import org.osmdroid.views.overlay.Marker
-import org.osmdroid.views.overlay.Polyline
+import org.maplibre.android.MapLibre
+import org.maplibre.android.camera.CameraPosition
+import org.maplibre.android.camera.CameraUpdateFactory
+import org.maplibre.android.geometry.LatLng
+import org.maplibre.android.geometry.LatLngBounds
+import org.maplibre.android.maps.MapLibreMap
+import org.maplibre.android.maps.MapView
+import org.maplibre.android.style.layers.CircleLayer
+import org.maplibre.android.style.layers.LineLayer
+import org.maplibre.android.style.layers.PropertyFactory.*
+import org.maplibre.android.style.sources.GeoJsonSource
+import org.maplibre.geojson.Feature
+import org.maplibre.geojson.FeatureCollection
+import org.maplibre.geojson.LineString
+import org.maplibre.geojson.Point
 
-/** Native street map: the route and pins work without a WebView or remote JavaScript. */
+/** Live route on OpenFreeMap vector streets; no Google Maps API key is needed. */
 class RouteMapActivity : BaseActivity() {
-    private lateinit var map: MapView
-    private lateinit var route: Polyline
+    private lateinit var mapView: MapView
     private lateinit var status: TextView
-    private val points = mutableListOf<GeoPoint>()
-    private var startPin: Marker? = null
-    private var currentPin: Marker? = null
-    private var finishPin: Marker? = null
+    private var map: MapLibreMap? = null
+    private val points = mutableListOf<LatLng>()
     private var finished = false
-    private var tileProblem: String? = null
-    private var tileLoaded = false
+    private var styleReady = false
+    private var streetProblem: String? = null
     private var waitedForGps = false
     private val live by lazy { intent.getBooleanExtra(EXTRA_LIVE, false) }
 
@@ -58,7 +58,7 @@ class RouteMapActivity : BaseActivity() {
                     if (!update.hasExtra("latitude") || !update.hasExtra("longitude")) return
                     val lat = update.getDoubleExtra("latitude", Double.NaN)
                     val lng = update.getDoubleExtra("longitude", Double.NaN)
-                    if (lat.isFinite() && lng.isFinite() && lat in -90.0..90.0 && lng in -180.0..180.0) addPoint(GeoPoint(lat, lng), true)
+                    if (valid(lat, lng)) addPoint(LatLng(lat, lng), true)
                 }
                 TrackingService.ACTION_STOPPED -> finishRoute()
             }
@@ -67,47 +67,24 @@ class RouteMapActivity : BaseActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        Configuration.getInstance().setUserAgentValue("BlushFit/1.0 (+https://github.com/Lyssa21/FitnessApp)")
-        Configuration.getInstance().osmdroidBasePath = filesDir
-        Configuration.getInstance().osmdroidTileCache = java.io.File(cacheDir, "map_tiles")
-
-        map = MapView(this).apply {
-            setTileSource(XYTileSource(
-                "BlushFitStreetMap", 0, 19, 256, ".png",
-                arrayOf("https://tile.openstreetmap.org/"),
-                "© OpenStreetMap contributors",
-                TileSourcePolicy(2,
-                    TileSourcePolicy.FLAG_NO_BULK or
-                    TileSourcePolicy.FLAG_NO_PREVENTIVE or
-                    TileSourcePolicy.FLAG_USER_AGENT_MEANINGFUL)
-            ))
-            setMultiTouchControls(true)
-            controller.setZoom(11.0)
-            controller.setCenter(GeoPoint(16.8661, 96.1951))
-            setBackgroundColor(android.graphics.Color.rgb(248, 242, 245))
-        }
-        route = Polyline().apply {
-            outlinePaint.color = android.graphics.Color.rgb(255, 101, 132)
-            outlinePaint.strokeWidth = 12f * resources.displayMetrics.density
-        }
-        map.overlays.add(route)
+        MapLibre.getInstance(this)
+        mapView = MapView(this).apply { onCreate(savedInstanceState) }
         status = TextView(this).apply {
-            text = "Waiting for GPS location · checking street map…"
-            setTextColor(android.graphics.Color.WHITE)
+            setTextColor(Color.WHITE)
             textSize = 14f
             setPadding(18.dp, 12.dp, 18.dp, 12.dp)
-            setBackgroundColor(android.graphics.Color.rgb(255, 101, 132))
+            setBackgroundColor(Color.rgb(255, 101, 132))
         }
         val attribution = TextView(this).apply {
-            text = "© OpenStreetMap contributors"
+            text = "© OpenMapTiles · © OpenStreetMap contributors"
             setTextColor(Color.rgb(35, 35, 35))
             textSize = 11f
             setPadding(8.dp, 4.dp, 8.dp, 4.dp)
             setBackgroundColor(Color.argb(230, 255, 255, 255))
-            setOnClickListener { startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://www.openstreetmap.org/copyright"))) }
+            setOnClickListener { startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://openfreemap.org/"))) }
         }
         val root = FrameLayout(this).apply {
-            addView(map, FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT))
+            addView(mapView, FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT))
             addView(status, FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT, Gravity.TOP))
             addView(attribution, FrameLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT, Gravity.BOTTOM or Gravity.END))
         }
@@ -117,23 +94,49 @@ class RouteMapActivity : BaseActivity() {
             insets
         }
         setContentView(root)
-        centerOnLastKnownLocation()
-        checkStreetTiles()
 
         val saved = runCatching { JSONArray(intent.getStringExtra(EXTRA_POINTS).orEmpty()) }.getOrNull() ?: JSONArray()
         for (i in 0 until saved.length()) {
-            val point = saved.optJSONObject(i) ?: continue
-            val lat = point.optDouble("lat", Double.NaN)
-            val lng = point.optDouble("lng", Double.NaN)
-            if (lat.isFinite() && lng.isFinite() && lat in -90.0..90.0 && lng in -180.0..180.0) addPoint(GeoPoint(lat, lng), false)
+            val item = saved.optJSONObject(i) ?: continue
+            val lat = item.optDouble("lat", Double.NaN)
+            val lng = item.optDouble("lng", Double.NaN)
+            if (valid(lat, lng)) addPoint(LatLng(lat, lng), false)
         }
-        if (points.size > 1) map.post { map.zoomToBoundingBox(BoundingBox.fromGeoPoints(points), true, 48.dp) }
-        if (!live && points.isNotEmpty()) finishRoute()
+        if (!live && points.isNotEmpty()) finished = true
         if (live) ContextCompat.registerReceiver(this, receiver, IntentFilter().apply {
             addAction(TrackingService.ACTION_UPDATE)
             addAction(TrackingService.ACTION_STOPPED)
         }, ContextCompat.RECEIVER_NOT_EXPORTED)
+
+        mapView.getMapAsync { readyMap ->
+            map = readyMap
+            readyMap.cameraPosition = CameraPosition.Builder()
+                .target(points.lastOrNull() ?: LatLng(16.8661, 96.1951))
+                .zoom(if (points.isEmpty()) 11.0 else 16.0).build()
+            readyMap.setStyle(STYLE_URL) { style ->
+                style.addSource(GeoJsonSource(ROUTE_SOURCE, emptyFeatures()))
+                style.addLayer(LineLayer("workout-route", ROUTE_SOURCE).withProperties(
+                    lineColor(Color.rgb(255, 101, 132)), lineWidth(6f), lineOpacity(0.9f)
+                ))
+                addPinLayer(style, START_SOURCE, Color.rgb(52, 169, 110))
+                addPinLayer(style, CURRENT_SOURCE, Color.rgb(255, 101, 132))
+                addPinLayer(style, FINISH_SOURCE, Color.rgb(92, 52, 64))
+                styleReady = true
+                if (streetProblem?.startsWith("Street map timed out") == true) streetProblem = null
+                refreshRoute(false)
+                if (points.size > 1) fitRoute()
+                updateStatus()
+            }
+        }
+        centerOnLastKnownLocation()
+        checkStreetService()
         updateStatus()
+        Handler(Looper.getMainLooper()).postDelayed({
+            if (!isFinishing && !isDestroyed && !styleReady && streetProblem == null) {
+                streetProblem = "Street map timed out. Check internet or VPN."
+                updateStatus()
+            }
+        }, 15_000L)
         if (live) Handler(Looper.getMainLooper()).postDelayed({
             if (!isFinishing && !isDestroyed && points.isEmpty()) {
                 waitedForGps = true
@@ -142,41 +145,83 @@ class RouteMapActivity : BaseActivity() {
         }, 20_000L)
     }
 
+    private fun addPinLayer(style: org.maplibre.android.maps.Style, sourceId: String, color: Int) {
+        style.addSource(GeoJsonSource(sourceId, emptyFeatures()))
+        style.addLayer(CircleLayer("$sourceId-layer", sourceId).withProperties(
+            circleColor(color), circleRadius(9f), circleStrokeColor(Color.WHITE), circleStrokeWidth(3f)
+        ))
+    }
+
+    private fun emptyFeatures() = FeatureCollection.fromFeatures(emptyArray<Feature>())
+
+    private fun pointFeatures(point: LatLng?) = if (point == null) emptyFeatures() else
+        FeatureCollection.fromFeatures(arrayOf(Feature.fromGeometry(Point.fromLngLat(point.longitude, point.latitude))))
+
+    private fun refreshRoute(follow: Boolean) {
+        val readyMap = map ?: return
+        if (!styleReady) return
+        val style = readyMap.style ?: return
+        val line = if (points.size < 2) emptyFeatures() else FeatureCollection.fromFeatures(arrayOf(
+            Feature.fromGeometry(LineString.fromLngLats(points.map { Point.fromLngLat(it.longitude, it.latitude) }))
+        ))
+        style.getSourceAs<GeoJsonSource>(ROUTE_SOURCE)?.setGeoJson(line)
+        style.getSourceAs<GeoJsonSource>(START_SOURCE)?.setGeoJson(pointFeatures(points.firstOrNull()))
+        style.getSourceAs<GeoJsonSource>(CURRENT_SOURCE)?.setGeoJson(pointFeatures(if (finished) null else points.lastOrNull()))
+        style.getSourceAs<GeoJsonSource>(FINISH_SOURCE)?.setGeoJson(pointFeatures(if (finished) points.lastOrNull() else null))
+        if (follow) points.lastOrNull()?.let { readyMap.animateCamera(CameraUpdateFactory.newLatLngZoom(it, 16.0)) }
+    }
+
+    private fun fitRoute() {
+        val readyMap = map ?: return
+        if (points.size < 2) return
+        val bounds = LatLngBounds.Builder().includes(points).build()
+        mapView.post { readyMap.animateCamera(CameraUpdateFactory.newLatLngBounds(bounds, 48.dp)) }
+    }
+
+    private fun addPoint(point: LatLng, follow: Boolean) {
+        if (finished || points.lastOrNull()?.let { it.latitude == point.latitude && it.longitude == point.longitude } == true) return
+        points.add(point)
+        refreshRoute(follow)
+        updateStatus()
+    }
+
+    private fun finishRoute() {
+        if (finished) return
+        finished = true
+        refreshRoute(false)
+        updateStatus()
+    }
+
     private fun centerOnLastKnownLocation() {
         if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED &&
             ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) return
         try {
             LocationServices.getFusedLocationProviderClient(this).lastLocation.addOnSuccessListener { location ->
                 if (location != null && points.isEmpty() && !isFinishing && !isDestroyed) {
-                    map.controller.setZoom(15.0)
-                    map.controller.animateTo(GeoPoint(location.latitude, location.longitude))
+                    map?.animateCamera(CameraUpdateFactory.newLatLngZoom(LatLng(location.latitude, location.longitude), 15.0))
                 }
             }
         } catch (_: SecurityException) { /* Permission can change while opening the map. */ }
     }
 
-    private fun checkStreetTiles() {
+    private fun checkStreetService() {
         Thread {
             val problem = try {
-                val connection = (java.net.URL("https://tile.openstreetmap.org/0/0/0.png").openConnection() as java.net.HttpURLConnection).apply {
-                    requestMethod = "GET"
+                val connection = (java.net.URL(STYLE_URL).openConnection() as java.net.HttpURLConnection).apply {
                     connectTimeout = 8000
                     readTimeout = 8000
-                    setRequestProperty("User-Agent", "BlushFit/1.0 (+https://github.com/Lyssa21/FitnessApp)")
                 }
                 try {
                     val code = connection.responseCode
                     if (code == 200) {
                         connection.inputStream.use { it.read() }
                         null
-                    } else if (code == 403) "Street map access blocked (HTTP 403)"
-                    else "Street map unavailable (HTTP $code)"
+                    } else "Street map server returned HTTP $code"
                 } finally { connection.disconnect() }
             } catch (_: Exception) { "Street map cannot connect. Check internet or VPN." }
             Handler(Looper.getMainLooper()).post {
                 if (!isFinishing && !isDestroyed) {
-                    tileLoaded = problem == null
-                    tileProblem = problem
+                    streetProblem = problem
                     updateStatus()
                 }
             }
@@ -184,8 +229,9 @@ class RouteMapActivity : BaseActivity() {
     }
 
     private fun updateStatus() {
+        if (!::status.isInitialized) return
         val gps = when {
-            finished -> if (points.isEmpty()) "No GPS route was recorded" else "Finished route · ${points.size} GPS points"
+            finished -> if (points.isEmpty()) "No GPS route recorded" else "Finished route · ${points.size} GPS points"
             points.isNotEmpty() -> "${points.size} GPS ${if (points.size == 1) "point" else "points"}"
             !live -> "No GPS route recorded"
             ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED -> "Precise location permission needed"
@@ -194,62 +240,30 @@ class RouteMapActivity : BaseActivity() {
             else -> "Waiting for GPS location"
         }
         status.text = when {
-            tileProblem != null -> "$gps · $tileProblem"
-            !tileLoaded -> "$gps · loading streets…"
-            else -> "$gps · street server reachable"
+            streetProblem != null -> "$gps · $streetProblem"
+            !styleReady -> "$gps · loading street map…"
+            else -> "$gps · live street map"
         }
     }
 
-    private fun addPoint(point: GeoPoint, follow: Boolean) {
-        if (finished || points.lastOrNull()?.distanceToAsDouble(point)?.let { it < 0.5 } == true) return
-        points.add(point)
-        route.setPoints(points)
-        if (startPin == null) startPin = pin(point, "Start", android.graphics.Color.rgb(52, 169, 110))
-        if (currentPin == null) currentPin = pin(point, "You are here", android.graphics.Color.rgb(255, 101, 132))
-        else currentPin?.position = point
-        updateStatus()
-        if (follow || points.size == 1) map.controller.animateTo(point)
-        map.invalidate()
-    }
-
-    private fun finishRoute() {
-        if (finished) return
-        finished = true
-        points.lastOrNull()?.let { finishPin = pin(it, "Finish", android.graphics.Color.rgb(92, 52, 64)) }
-        currentPin?.let { map.overlays.remove(it) }
-        currentPin = null
-        updateStatus()
-        map.invalidate()
-    }
-
-    private fun pin(point: GeoPoint, title: String, color: Int): Marker = Marker(map).apply {
-        position = point
-        this.title = title
-        icon = BitmapDrawable(resources, circleIcon(color))
-        setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_CENTER)
-        map.overlays.add(this)
-    }
-
-    private fun circleIcon(color: Int): Bitmap {
-        val size = 30.dp
-        val bitmap = Bitmap.createBitmap(size, size, Bitmap.Config.ARGB_8888)
-        val canvas = Canvas(bitmap)
-        val paint = Paint(Paint.ANTI_ALIAS_FLAG)
-        paint.color = android.graphics.Color.WHITE
-        canvas.drawCircle(size / 2f, size / 2f, size / 2f, paint)
-        paint.color = color
-        canvas.drawCircle(size / 2f, size / 2f, size * 0.37f, paint)
-        return bitmap
-    }
-
+    private fun valid(lat: Double, lng: Double) = lat.isFinite() && lng.isFinite() && lat in -90.0..90.0 && lng in -180.0..180.0
     private val Int.dp: Int get() = (this * resources.displayMetrics.density).toInt()
 
-    override fun onResume() { super.onResume(); if (::map.isInitialized) map.onResume() }
-    override fun onPause() { if (::map.isInitialized) map.onPause(); super.onPause() }
-    override fun onDestroy() { if (live) unregisterReceiver(receiver); super.onDestroy() }
+    override fun onStart() { super.onStart(); mapView.onStart() }
+    override fun onResume() { super.onResume(); mapView.onResume() }
+    override fun onPause() { mapView.onPause(); super.onPause() }
+    override fun onStop() { mapView.onStop(); super.onStop() }
+    override fun onLowMemory() { super.onLowMemory(); mapView.onLowMemory() }
+    override fun onSaveInstanceState(outState: Bundle) { super.onSaveInstanceState(outState); mapView.onSaveInstanceState(outState) }
+    override fun onDestroy() { if (live) unregisterReceiver(receiver); mapView.onDestroy(); super.onDestroy() }
 
     companion object {
         const val EXTRA_POINTS = "route_points"
         const val EXTRA_LIVE = "live_route"
+        private const val STYLE_URL = "https://tiles.openfreemap.org/styles/liberty"
+        private const val ROUTE_SOURCE = "workout-route-source"
+        private const val START_SOURCE = "workout-start-source"
+        private const val CURRENT_SOURCE = "workout-current-source"
+        private const val FINISH_SOURCE = "workout-finish-source"
     }
 }
