@@ -4,10 +4,12 @@ import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
+import android.graphics.Color
 import android.graphics.Bitmap
 import android.graphics.Canvas
 import android.graphics.Paint
 import android.graphics.drawable.BitmapDrawable
+import android.net.Uri
 import android.os.Bundle
 import android.view.Gravity
 import android.view.ViewGroup
@@ -19,7 +21,8 @@ import androidx.core.view.WindowInsetsCompat
 import com.example.fitnessapp.tracking.TrackingService
 import org.json.JSONArray
 import org.osmdroid.config.Configuration
-import org.osmdroid.tileprovider.tilesource.TileSourceFactory
+import org.osmdroid.tileprovider.tilesource.TileSourcePolicy
+import org.osmdroid.tileprovider.tilesource.XYTileSource
 import org.osmdroid.util.BoundingBox
 import org.osmdroid.util.GeoPoint
 import org.osmdroid.views.MapView
@@ -54,12 +57,20 @@ class RouteMapActivity : BaseActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        Configuration.getInstance().setUserAgentValue(packageName)
+        Configuration.getInstance().setUserAgentValue("BlushFit/1.0 (+https://github.com/Lyssa21/FitnessApp)")
         Configuration.getInstance().osmdroidBasePath = filesDir
         Configuration.getInstance().osmdroidTileCache = java.io.File(cacheDir, "map_tiles")
 
         map = MapView(this).apply {
-            setTileSource(TileSourceFactory.MAPNIK)
+            setTileSource(XYTileSource(
+                "BlushFitStreetMap", 0, 19, 256, ".png",
+                arrayOf("https://tile.openstreetmap.org/"),
+                "© OpenStreetMap contributors",
+                TileSourcePolicy(2,
+                    TileSourcePolicy.FLAG_NO_BULK or
+                    TileSourcePolicy.FLAG_NO_PREVENTIVE or
+                    TileSourcePolicy.FLAG_USER_AGENT_MEANINGFUL)
+            ))
             setMultiTouchControls(true)
             controller.setZoom(16.0)
             setBackgroundColor(android.graphics.Color.rgb(248, 242, 245))
@@ -76,9 +87,18 @@ class RouteMapActivity : BaseActivity() {
             setPadding(18.dp, 12.dp, 18.dp, 12.dp)
             setBackgroundColor(android.graphics.Color.rgb(255, 101, 132))
         }
+        val attribution = TextView(this).apply {
+            text = "© OpenStreetMap contributors"
+            setTextColor(Color.rgb(35, 35, 35))
+            textSize = 11f
+            setPadding(8.dp, 4.dp, 8.dp, 4.dp)
+            setBackgroundColor(Color.argb(230, 255, 255, 255))
+            setOnClickListener { startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://www.openstreetmap.org/copyright"))) }
+        }
         val root = FrameLayout(this).apply {
             addView(map, FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT))
             addView(status, FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT, Gravity.TOP))
+            addView(attribution, FrameLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT, Gravity.BOTTOM or Gravity.END))
         }
         ViewCompat.setOnApplyWindowInsetsListener(root) { view, insets ->
             val bars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
