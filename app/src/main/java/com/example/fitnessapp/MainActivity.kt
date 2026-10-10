@@ -121,7 +121,9 @@ class MainActivity : BaseActivity() {
         findViewById<Button>(R.id.stopTrackingButton).setOnClickListener { stopGpsTracking() }
         findViewById<Button>(R.id.saveTrackingButton).setOnClickListener { saveTrackingProgress() }
         findViewById<Button>(R.id.liveRouteButton).setOnClickListener {
-            startActivity(Intent(this, RouteMapActivity::class.java).putExtra(RouteMapActivity.EXTRA_LIVE, true))
+            startActivity(Intent(this, RouteMapActivity::class.java)
+                .putExtra(RouteMapActivity.EXTRA_LIVE, true)
+                .putExtra(RouteMapActivity.EXTRA_POINTS, trackingRouteJson))
         }
         findViewById<Button>(R.id.editGoalButton).setOnClickListener { showGoalDialog() }
         findViewById<Button>(R.id.analyticsButton).setOnClickListener {
