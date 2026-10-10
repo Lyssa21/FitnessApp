@@ -18,7 +18,7 @@
         android:fillViewport="true"
         android:paddingStart="20dp"
         android:paddingEnd="20dp"
-        android:paddingTop="38dp"
+        android:paddingTop="56dp"
         android:paddingBottom="96dp">
 
         <LinearLayout
@@ -97,11 +97,15 @@
                 <com.google.android.material.button.MaterialButton
                     android:id="@+id/startTrackingButton" android:layout_width="0dp"
                     android:layout_height="56dp" android:layout_weight="1"
-                    android:text="START GPS" android:textColor="@color/white" android:backgroundTint="@color/primary_pink" />
+                    android:text="START GPS" android:textSize="12sp" android:maxLines="1"
+                    android:paddingStart="0dp" android:paddingEnd="0dp"
+                    android:textColor="@color/white" android:backgroundTint="@color/primary_pink" />
                 <com.google.android.material.button.MaterialButton
                     android:id="@+id/stopTrackingButton" android:layout_width="0dp"
                     android:layout_height="56dp" android:layout_weight="1"
-                    android:text="STOP GPS" android:textColor="@color/white" android:backgroundTint="@color/soft_rose_pink" android:enabled="false" />
+                    android:text="STOP GPS" android:textSize="12sp" android:maxLines="1"
+                    android:paddingStart="0dp" android:paddingEnd="0dp"
+                    android:textColor="@color/white" android:backgroundTint="@color/soft_rose_pink" android:enabled="false" />
             </LinearLayout>
             <TextView android:id="@+id/trackingStatusTextView" android:layout_width="match_parent"
                 android:layout_height="wrap_content" android:layout_marginTop="4dp"
